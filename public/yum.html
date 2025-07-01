@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>YUM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            background-image: url("/public/bg1.jpg");
+            background-attachment: fixed;
+            background-position: center;
+        }
+        h1 {
+            text-align: center;
+            color: ivory;
+            text-shadow: 4px 4px 5px #9541AC;
+        }
+
+        #leaderboard {
+            display: flex;
+            flex-direction: column;
+            margin: 0 5px;
+            background: rgb(120 103 197 / 80%);
+        }
+
+        .leaderboard-header, .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+        }
+        .leaderboard-header {
+            position: sticky;
+            top:0;
+            background: #bb37fc;
+            font-weight:700;
+            font-size: 18px;
+        }
+
+        .col-1 {
+            width:10%;
+        }
+        .col-2 {
+            width:70%;
+            text-align: left;
+            font-family: monospace;
+        }
+        .col-3 {
+            width:20%;
+            text-align:right;
+        }
+
+        .leaderboard-item .col-1, .leaderboard-item .col-3 {
+            font-size: 17px;
+        }
+        .leaderboard-item .col-2 {
+            font-weight: 700;
+            font-size: 16px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .error {
+            color: ivory;
+            text-align: center;
+            padding:10px;
+        }
+    </style>
+</head>
+<body>
+<h1>YUM - склейка комонок от 11/06 </h1>
+<div id="leaderboard">
+    <div class="leaderboard-header">
+        <div class="col-1">№</div>
+        <div class="col-2">Кошелек</div>
+        <div class="col-3">Сумма</div>
+    </div>
+    <div id="items"></div>
+</div>
+
+<script>
+    const API_PATH = '/api/grecha';
+    const WALLET_ID = 'feed_yupiks.near';
+    const SYMBOL    = 'YUM';
+    const SINCE_DATETIME = '2025-06-11T00:00';
+    const UNTIL_DATETIME = '2025-06-22T23:59';
+    const SINCE_MS     = new Date(SINCE_DATETIME).getTime();
+    const UNTIL_MS     = new Date(UNTIL_DATETIME).getTime();
+    const BATCH = 200;
+    const MIN_INTERVAL = 5 * 60 * 1000;  // 5 minutes in ms.
+
+    // Time of the last real request
+    let lastFetchTime = 0;
+
+    // Download all batches of 200 until an “incomplete” batch is returned
+    async function fetchAll() {
+        let all = [];
+        for (let skip = 0; ; skip += BATCH) {
+            const url = `${API_PATH}`
+                + `?wallet_id=${encodeURIComponent(WALLET_ID)}`
+                + `&symbol=${encodeURIComponent(SYMBOL)}`
+                + `&limit=${BATCH}`
+                + `&skip=${skip}`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`API ${resp.status}`);
+            const { transfers } = await resp.json();
+            if (!Array.isArray(transfers) || transfers.length === 0) break;
+            all.push(...transfers);
+            if (transfers.length < BATCH) break;
+        }
+        return all;
+    }
+
+    // Renders the leaderboard, but actually requests the API no more often than 1×/5min
+    async function renderBoard() {
+        const now = Date.now();
+        // If less than MIN_INTERVAL has elapsed since the last fetch - exit
+        if (now - lastFetchTime < MIN_INTERVAL) {
+            console.log(`Пропускаем запрос: прошло ${(now - lastFetchTime)/1000 | 0}s`);
+            return;
+        }
+        lastFetchTime = now;
+
+        const container = document.getElementById('items');
+        container.innerHTML = '';
+        try {
+            let data = await fetchAll();
+            // Filtering by two time limits
+            data = data.filter(tx => {
+                const txMs = Number(tx.timestamp_nanosec) / 1e6;
+                return txMs >= SINCE_MS && txMs <= UNTIL_MS;
+            });
+
+            // Group and divide by 1000
+            const sums = data.reduce((acc, tx) => {
+                const raw = parseFloat(tx.amount);
+                const val = isNaN(raw) ? 0 : raw/100000;
+                acc[tx.from] = (acc[tx.from] || 0) + val;
+                return acc;
+            }, {});
+
+            // Sort and output
+            const sorted = Object.entries(sums)
+                .map(([wallet, total]) => ({ wallet, total }))
+                .sort((a,b) => b.total - a.total);
+
+            if (!sorted.length) {
+                container.innerHTML = `<div class="error">
+              Нет переводов в период<br>
+              ${SINCE_DATETIME.replace('T',' ')} — ${UNTIL_DATETIME.replace('T',' ')}
+            </div>`;
+                return;
+            }
+
+            sorted.forEach((item, i) => {
+                const row = document.createElement('div');
+                row.className = 'leaderboard-item';
+                row.innerHTML = `
+            <div class="col-1">${i+1}</div>
+            <div class="col-2">${item.wallet}</div>
+            <div class="col-3">
+              ${item.total.toLocaleString(undefined,{
+                    minimumFractionDigits:3,
+                    maximumFractionDigits:3
+                })}
+            </div>`;
+                container.appendChild(row);
+            });
+
+        } catch (err) {
+            container.innerHTML = `<div class="error">Ошибка: ${err.message}</div>`;
+            console.error(err);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', renderBoard);
+</script>
+</body>
+</html>
