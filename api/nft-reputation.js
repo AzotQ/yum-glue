@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const limit    = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip     = Number(req.query.skip)  || DEFAULT_SKIP;
 
-    // Опциональный фильтр по дате (ISO-строки)
+    // Парсим опциональный фильтр по дате
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -27,8 +27,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1) Пагинация: вытягиваем все входящие NFT-трансферы по skip/limit,
-        //    учитывая только те, у которых method === 'nft_transfer'
+        // 1) Пагинация: собираем все входящие трансферы с method='nft_transfer'
         const allTransfers = [];
         let offset     = skip;
         let totalCount = Infinity;
@@ -42,64 +41,75 @@ export default async function handler(req, res) {
 
             const resp = await fetch(url.toString());
             if (!resp.ok) break;
-
             const json = await resp.json();
-            if (typeof json.total === 'number') {
-                totalCount = json.total;
-            }
-            const batch = Array.isArray(json.nft_transfers) ? json.nft_transfers : [];
-            if (batch.length === 0) break;
+            if (typeof json.total === 'number') totalCount = json.total;
 
-            // Фильтруем по методу и по времени (если задан период)
-            const filtered = batch.filter(tx => {
-                if (tx.method !== 'nft_transfer') return false;
-                if (startNano === null && endNano === null) return true;
-                if (!tx.timestamp_nanosec) return false;
-                const ts = BigInt(tx.timestamp_nanosec);
-                if (startNano !== null && ts < startNano) return false;
-                if (endNano   !== null && ts > endNano)   return false;
-                return true;
+            const batch = Array.isArray(json.nft_transfers) ? json.nft_transfers : [];
+            if (!batch.length) break;
+
+            batch.forEach(tx => {
+                if (tx.method !== 'nft_transfer') return;
+                if (startNano !== null || endNano !== null) {
+                    if (!tx.timestamp_nanosec) return;
+                    const ts = BigInt(tx.timestamp_nanosec);
+                    if (startNano !== null && ts < startNano) return;
+                    if (endNano   !== null && ts > endNano)   return;
+                }
+                allTransfers.push(tx);
             });
 
-            allTransfers.push(...filtered);
             offset += limit;
         } while (offset < totalCount);
 
-        // 2) Получаем глобальные репутации по названию из unique-reputation
+        // 2) Загружаем глобальную карту title→reputation
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap  = {};
         if (repResp.ok) {
             const repJson = await repResp.json();
             const records = Array.isArray(repJson.nfts) ? repJson.nfts : [];
-            for (const item of records) {
+            records.forEach(item => {
                 if (typeof item.title === 'string' && typeof item.reputation === 'number') {
-                    const key = item.title.trim().toLowerCase();
-                    repMap[key] = item.reputation;
+                    repMap[item.title.trim().toLowerCase()] = item.reputation;
                 }
-            }
+            });
         } else {
             console.warn(`Unique-reputation API returned ${repResp.status}, skipping reputations`);
         }
 
-        // 3) Группируем по sender_id и суммируем репутацию по совпадению title
-        const sumsBySender = allTransfers.reduce((acc, tx) => {
+        // 3) Группируем по sender_id: считаем total и собираем токены с count и rep
+        const bySender = {};
+        allTransfers.forEach(tx => {
             const from  = tx.sender_id;
-            const title = String(tx.args?.title || '')
-                .trim()
-                .toLowerCase();
-            const rep   = repMap[title] || 0;
-            acc[from]   = (acc[from] || 0) + rep;
-            return acc;
-        }, {});
+            const title = (tx.args?.title || '').trim().toLowerCase();
+            if (!title) return;
 
-        // 4) Формируем и возвращаем отсортированный лидерборд
-        const leaderboard = Object.entries(sumsBySender)
-            .map(([wallet, total]) => ({ wallet, total }))
+            const rep = repMap[title] || 0;
+            if (!bySender[from]) {
+                bySender[from] = { total: 0, tokens: {} };
+            }
+            bySender[from].total += rep;
+
+            // инициализируем запись по токену
+            if (!bySender[from].tokens[title]) {
+                bySender[from].tokens[title] = { title, count: 0, rep, totalRep: 0 };
+            }
+            const rec = bySender[from].tokens[title];
+            rec.count += 1;
+            rec.totalRep = rec.count * rec.rep;
+        });
+
+        // 4) Формируем итоговый массив
+        const leaderboard = Object.entries(bySender)
+            .map(([wallet, { total, tokens }]) => ({
+                wallet,
+                total,
+                tokens: Object.values(tokens)
+            }))
             .sort((a, b) => b.total - a.total);
 
         return res.status(200).json({ leaderboard });
     } catch (err) {
-        console.error('Error in nft-reputation handler:', err);
+        console.error(err);
         return res.status(500).json({ error: err.message });
     }
 }
