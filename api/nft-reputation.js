@@ -1,4 +1,3 @@
-// api/nft-reputation.js
 import fetch from 'node-fetch';
 
 const TRANSFERS_URL         = 'https://dialog-tbot.com/history/nft-transfers/';
@@ -11,7 +10,7 @@ export default async function handler(req, res) {
     const limit    = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip     = Number(req.query.skip)  || DEFAULT_SKIP;
 
-    // Парсим опциональный фильтр по дате
+    // Parsing optional filter by date
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -27,7 +26,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1) Пагинация: собираем все входящие трансферы с method='nft_transfer'
+        // Pagination: collect all incoming transfers with method='nft_transfer'
         const allTransfers = [];
         let offset     = skip;
         let totalCount = Infinity;
@@ -61,7 +60,7 @@ export default async function handler(req, res) {
             offset += limit;
         } while (offset < totalCount);
 
-        // 2) Загружаем глобальную карту title→reputation
+        // Load global map title→reputation
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap  = {};
         if (repResp.ok) {
@@ -76,7 +75,7 @@ export default async function handler(req, res) {
             console.warn(`Unique-reputation API returned ${repResp.status}, skipping reputations`);
         }
 
-        // 3) Группируем по sender_id: считаем total и собираем токены с count и rep
+        // Group by sender_id: count total and collect tokens with count and rep
         const bySender = {};
         allTransfers.forEach(tx => {
             const from  = tx.sender_id;
@@ -89,7 +88,7 @@ export default async function handler(req, res) {
             }
             bySender[from].total += rep;
 
-            // инициализируем запись по токену
+            // initialize the record by token
             if (!bySender[from].tokens[title]) {
                 bySender[from].tokens[title] = { title, count: 0, rep, totalRep: 0 };
             }
@@ -98,7 +97,7 @@ export default async function handler(req, res) {
             rec.totalRep = rec.count * rec.rep;
         });
 
-        // 4) Формируем итоговый массив
+        // Forming the final array
         const leaderboard = Object.entries(bySender)
             .map(([wallet, { total, tokens }]) => ({
                 wallet,
