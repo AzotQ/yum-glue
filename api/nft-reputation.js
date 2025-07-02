@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const limit    = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip     = Number(req.query.skip)  || DEFAULT_SKIP;
 
-    // Parsing optional filter by date
+    // Optional filter by date
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -26,11 +26,10 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Pagination: collect all incoming transfers with method='nft_transfer'
+        // Download all incoming NFT transfers by pagination, filtering only method='nft_transfer'
         const allTransfers = [];
         let offset     = skip;
         let totalCount = Infinity;
-
         do {
             const url = new URL(TRANSFERS_URL);
             url.searchParams.set('wallet_id', walletId);
@@ -44,7 +43,7 @@ export default async function handler(req, res) {
             if (typeof json.total === 'number') totalCount = json.total;
 
             const batch = Array.isArray(json.nft_transfers) ? json.nft_transfers : [];
-            if (!batch.length) break;
+            if (batch.length === 0) break;
 
             batch.forEach(tx => {
                 if (tx.method !== 'nft_transfer') return;
@@ -60,7 +59,7 @@ export default async function handler(req, res) {
             offset += limit;
         } while (offset < totalCount);
 
-        // Load global map title→reputation
+        // Load map title→reputation
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap  = {};
         if (repResp.ok) {
@@ -75,7 +74,7 @@ export default async function handler(req, res) {
             console.warn(`Unique-reputation API returned ${repResp.status}, skipping reputations`);
         }
 
-        // Group by sender_id: count total and collect tokens with count and rep
+        // Group by sender_id, collect total, tokens and date of first shipment
         const bySender = {};
         allTransfers.forEach(tx => {
             const from  = tx.sender_id;
@@ -83,32 +82,46 @@ export default async function handler(req, res) {
             if (!title) return;
 
             const rep = repMap[title] || 0;
+            const ts  = tx.timestamp_nanosec
+                ? BigInt(tx.timestamp_nanosec)
+                : null;
+
             if (!bySender[from]) {
-                bySender[from] = { total: 0, tokens: {} };
+                // at first appearance - initialize total, tokens and firstTs
+                bySender[from] = { total: 0, tokens: {}, firstTs: ts };
+            } else if (ts !== null && ts < bySender[from].firstTs) {
+                // update if we find an earlier shipment.
+                bySender[from].firstTs = ts;
             }
+
             bySender[from].total += rep;
 
-            // initialize the record by token
             if (!bySender[from].tokens[title]) {
                 bySender[from].tokens[title] = { title, count: 0, rep, totalRep: 0 };
             }
             const rec = bySender[from].tokens[title];
-            rec.count += 1;
-            rec.totalRep = rec.count * rec.rep;
+            rec.count    += 1;
+            rec.totalRep  = rec.count * rec.rep;
         });
 
-        // Forming the final array
+        // Form an array, sort by firstTs (oldest at the beginning), remove firstTs from the final output
         const leaderboard = Object.entries(bySender)
-            .map(([wallet, { total, tokens }]) => ({
+            .map(([wallet, { total, tokens, firstTs }]) => ({
                 wallet,
                 total,
-                tokens: Object.values(tokens)
+                tokens: Object.values(tokens),
+                firstTs
             }))
-            .sort((a, b) => b.total - a.total);
+            .sort((a, b) => {
+                if (a.firstTs < b.firstTs) return -1;
+                if (a.firstTs > b.firstTs) return 1;
+                return 0;
+            })
+            .map(({ firstTs, ...rest }) => rest);
 
         return res.status(200).json({ leaderboard });
     } catch (err) {
-        console.error(err);
+        console.error('Error in nft-reputation handler:', err);
         return res.status(500).json({ error: err.message });
     }
 }
