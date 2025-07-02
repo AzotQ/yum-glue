@@ -84,7 +84,10 @@ export default async function handler(req, res) {
 
             const rep = repMap[title] || 0;
             if (!bySender[from]) {
-                bySender[from] = { total: 0, tokens: {} };
+                bySender[from] = { total: 0, tokens: {}, firstTs: ts };
+            }
+            if (ts < bySender[from].firstTs) {
+                bySender[from].firstTs = ts;
             }
             bySender[from].total += rep;
 
@@ -99,12 +102,18 @@ export default async function handler(req, res) {
 
         // Forming the final array
         const leaderboard = Object.entries(bySender)
-            .map(([wallet, { total, tokens }]) => ({
+            .map(([wallet, { total, tokens, firstTs }]) => ({
                 wallet,
                 total,
-                tokens: Object.values(tokens)
+                tokens: Object.values(tokens),
+                firstTs
             }))
-            .sort((a, b) => b.total - a.total);
+            .sort((a, b) => {
+                // from the earliest firstTs date to the latest date
+                if (a.firstTs < b.firstTs) return -1;
+                if (a.firstTs > b.firstTs) return 1;
+                return 0;
+            });
 
         return res.status(200).json({ leaderboard });
     } catch (err) {
