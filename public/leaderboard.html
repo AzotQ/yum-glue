@@ -3,6 +3,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>YUM склейка</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 1rem; }
@@ -115,7 +116,7 @@
             sum.innerHTML = `
           <div>${i+1}</div>
           <div>${item.wallet}</div>
-          <div>NFT ${item.nftCount} шт.</div>
+          <div>${item.nftCount} шт.</div>
           <div>${item.total.toLocaleString()} rep</div>
         `;
             det.appendChild(sum);
