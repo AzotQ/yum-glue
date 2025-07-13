@@ -2,15 +2,15 @@
 import fetch from 'node-fetch';
 import { fetchYUMTransfers } from './yum-rewards.js';
 
-const TRANSFERS_URL         = 'https://dialog-tbot.com/history/nft-transfers/';
+const TRANSFERS_URL = 'https://dialog-tbot.com/history/nft-transfers/';
 const UNIQUE_REPUTATION_URL = 'https://dialog-tbot.com/nft/unique-reputation/';
-const DEFAULT_LIMIT         = 200;
-const DEFAULT_SKIP          = 0;
+const DEFAULT_LIMIT = 200;
+const DEFAULT_SKIP = 0;
 
 export default async function handler(req, res) {
     const walletId = req.query.wallet_id;
-    const limit    = Number(req.query.limit) || DEFAULT_LIMIT;
-    const skip     = Number(req.query.skip)  || DEFAULT_SKIP;
+    const limit = Number(req.query.limit) || DEFAULT_LIMIT;
+    const skip = Number(req.query.skip) || DEFAULT_SKIP;
 
     let startNano = null, endNano = null;
     if (req.query.start_time) {
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
 
     try {
         const allTransfers = [];
+        const nftFirstTs = {};
         let offset = skip;
         let totalCount = Infinity;
 
@@ -52,16 +53,24 @@ export default async function handler(req, res) {
                     if (!tx.timestamp_nanosec) return;
                     const ts = BigInt(tx.timestamp_nanosec);
                     if (startNano !== null && ts < startNano) return;
-                    if (endNano   !== null && ts > endNano)   return;
+                    if (endNano !== null && ts > endNano) return;
                 }
+
                 allTransfers.push(tx);
+
+                // сохраняем первую метку времени по sender_id
+                const from = tx.sender_id;
+                const ts = BigInt(tx.timestamp_nanosec);
+                if (!nftFirstTs[from] || ts < BigInt(nftFirstTs[from])) {
+                    nftFirstTs[from] = tx.timestamp_nanosec;
+                }
             });
 
             offset += limit;
         } while (offset < totalCount);
 
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
-        const repMap  = {};
+        const repMap = {};
         if (repResp.ok) {
             const repJson = await repResp.json();
             const records = Array.isArray(repJson.nfts) ? repJson.nfts : [];
@@ -76,7 +85,7 @@ export default async function handler(req, res) {
 
         const bySender = {};
         allTransfers.forEach(tx => {
-            const from  = tx.sender_id;
+            const from = tx.sender_id;
             const title = (tx.args?.title || '').trim().toLowerCase();
             if (!title) return;
             const rep = repMap[title] || 0;
@@ -84,44 +93,53 @@ export default async function handler(req, res) {
             if (!bySender[from]) {
                 bySender[from] = { total: 0, nftCount: 0, tokens: {} };
             }
-            bySender[from].total    += rep;
+
+            bySender[from].total += rep;
             bySender[from].nftCount += 1;
 
             if (!bySender[from].tokens[title]) {
                 bySender[from].tokens[title] = { title, count: 0, rep, totalRep: 0 };
             }
             const rec = bySender[from].tokens[title];
-            rec.count    += 1;
-            rec.totalRep  = rec.count * rec.rep;
+            rec.count += 1;
+            rec.totalRep = rec.count * rec.rep;
         });
 
-        const leaderboard = Object.entries(bySender)
+        let leaderboard = Object.entries(bySender)
             .map(([wallet, { total, nftCount, tokens }]) => ({
                 wallet,
                 total,
                 nftCount,
                 tokens: Object.values(tokens),
-                yum: 0 // placeholder
-            }))
-            .sort((a, b) => b.total - a.total);
+                yum: 0,
+                firstNftTs: nftFirstTs[wallet] || null
+            }));
 
         const yumTransfers = await fetchYUMTransfers(walletId, 'YUM', 200, startNano, endNano);
         const yumBySender = {};
+
         yumTransfers.forEach(tx => {
-            const from = tx.from;
-            const amt = tx.amount;
+            const { from, amount } = tx;
+            if (!from || typeof amount !== 'number') return;
             if (!yumBySender[from]) yumBySender[from] = 0;
-            yumBySender[from] += amt;
+            yumBySender[from] += amount;
         });
 
         leaderboard.forEach(entry => {
             entry.yum = yumBySender[entry.wallet] || 0;
         });
 
+        // Сортировка по дате первого NFT трансфера
+        leaderboard.sort((a, b) => {
+            if (!a.firstNftTs) return 1;
+            if (!b.firstNftTs) return -1;
+            return BigInt(a.firstNftTs) - BigInt(b.firstNftTs);
+        });
+
         return res.status(200).json({ leaderboard });
 
     } catch (err) {
-        console.error('Error in nft-reputation handler:', err);
-        return res.status(500).json({ error: err.message });
+        console.error('❌ Error in nft-reputation handler:', err);
+        return res.status(500).json({ error: err.message, stack: err.stack });
     }
 }
