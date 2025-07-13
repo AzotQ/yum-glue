@@ -74,6 +74,7 @@
 
 <script>
     const API = '/api/nft-reputation';
+
     window.addEventListener('DOMContentLoaded', () => {
         setDefaultDates();
         fetchBoard();
@@ -103,25 +104,20 @@
         if (s) ps.set('start_time', new Date(s).toISOString());
         if (e) ps.set('end_time',   new Date(e).toISOString());
 
-        const res = await fetch(`${API}?${ps}`);
-        if (!res.ok) {
-            out.innerHTML = `<div class="error">API ${res.status}</div>`;
+        const resp = await fetch(`${API}?${ps}`);
+        if (!resp.ok) {
+            out.innerHTML = `<div class="error">API ${resp.status}</div>`;
             return;
         }
-        let { leaderboard } = await res.json();
+        let { leaderboard } = await resp.json();
 
+        // NFT-фильтр по названию
         if (tf) {
             leaderboard = leaderboard.map(item => {
                 const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
                 const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
                 const nftCnt   = filtered.reduce((sum, t) => sum + t.count, 0);
-                return {
-                    wallet:   item.wallet,
-                    total:    totalRep,
-                    nftCount: nftCnt,
-                    yumCount: item.yumCount,
-                    tokens:   filtered
-                };
+                return { ...item, total: totalRep, nftCount: nftCnt, tokens: filtered };
             }).filter(item => item.tokens.length);
         }
 
@@ -136,8 +132,8 @@
             sum.innerHTML = `
           <div>${i+1}</div>
           <div>${item.wallet}</div>
+          <div>NFT ${item.nftCount} шт.</div>
           <div>${item.yumCount.toLocaleString()} YUM</div>
-          <div>${item.nftCount} шт.</div>
           <div>${item.total.toLocaleString()} rep</div>
         `;
             det.appendChild(sum);
