@@ -1,4 +1,3 @@
-<!-- leaderboard.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -6,27 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>YUM склейка</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 1rem; }
-        details { margin-bottom: .5rem; border: 1px solid #ccc; border-radius: 4px; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 1rem;
+            margin: 0 auto;
+            max-width: 840px;
+        }
+        .controls {
+            display: flex;
+        }
+        details {
+            margin-bottom: .5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
         summary {
             display: flex;
             gap: 8px;
             padding: .5rem;
             cursor: pointer;
             background: #f9f9f9;
+            box-sizing: border-box;
+            align-items: center;
         }
         summary:hover { background: #f1f1f1; }
-        summary div:nth-child(1) {
-            width: 30px;
+        summary .wallet-value {
+            width: calc(100% - 100px);
         }
-        summary div:nth-child(2) {
-            width: calc(100% - 190px);
-        }
-        summary div:nth-child(3), summary div:nth-child(4) {
-            width: 80px;
+        summary .summary-count {
             display: flex;
+            flex-direction: column;
+            width: 100px;
             justify-content: flex-end;
+            gap: 5px;
+            text-align: end;
+            align-items: center;
+            white-space: nowrap;
         }
+
         .tokens {
             padding: .5rem 1rem;
             background: #fff;
@@ -41,7 +57,7 @@
         .controls { margin-bottom: 1rem; }
         .controls input { margin-right: .5rem; }
         .error { color: red; padding: 1rem 0; }
-        
+
         @media (max-width: 480px) {
             .controls {
                 display: flex;
@@ -49,12 +65,30 @@
                 gap: 5px;
                 align-items: center;
             }
-
+            summary {
+                justify-content: flex-start;
+                align-items: center;
+                width: 100%;
+            }
+            summary .wallet-value {
+                width: calc(100% - 100px);
+            }
+            summary .summary-count {
+                gap: 5px;
+                align-items: center;
+                width: 100px;
+                white-space: nowrap;
+            }
+            summary .summary-count > div {
+                width: 100%;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
 <h1>YUM склейка</h1>
+
 <div class="controls">
     <label>Wallet ID:
         <input type="text" id="wallet" value="feed_yupiks.near" />
@@ -63,13 +97,14 @@
         <input type="datetime-local" id="start" step="1" />
     </label>
     <label>По:
-        <input type="datetime-local" id="end"   step="1" />
+        <input type="datetime-local" id="end" step="1" />
     </label>
     <label>Имя NFT:
         <input type="text" id="tokenFilter" placeholder="Имя NFT" />
     </label>
     <button id="refresh">Обновить</button>
 </div>
+
 <div id="board"></div>
 
 <script>
@@ -96,10 +131,12 @@
         const tf= document.getElementById('tokenFilter').value.trim().toLowerCase();
         const out = document.getElementById('board');
         out.innerHTML = '';
+
         if (!w) {
             out.innerHTML = '<div class="error">Укажите wallet_id.</div>';
             return;
         }
+
         const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0 });
         if (s) ps.set('start_time', new Date(s).toISOString());
         if (e) ps.set('end_time',   new Date(e).toISOString());
@@ -111,7 +148,6 @@
         }
         let { leaderboard } = await resp.json();
 
-        // Фильтрация по NFT-имени
         if (tf) {
             leaderboard = leaderboard.map(item => {
                 const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
@@ -121,7 +157,8 @@
                     wallet:   item.wallet,
                     total:    totalRep,
                     nftCount: nftCnt,
-                    tokens:   filtered
+                    tokens:   filtered,
+                    yum:      item.yum
                 };
             }).filter(item => item.tokens.length);
         }
@@ -135,11 +172,14 @@
             const det = document.createElement('details');
             const sum = document.createElement('summary');
             sum.innerHTML = `
-          <div>${i+1}</div>
-          <div>${item.wallet}</div>
-          <div>${item.nftCount} шт.</div>
-          <div>${item.total.toLocaleString()} rep</div>
-        `;
+                <div>${i+1}</div>
+                <div class="wallet-value">${item.wallet}</div>
+                <div class="summary-count">
+                <div>${item.yum?.toLocaleString?.() || 0} YUM</div>
+                <div>${item.nftCount} шт.</div>
+                <div>${item.total.toLocaleString()} rep</div>
+                </div>
+            `;
             det.appendChild(sum);
 
             const box = document.createElement('div');
@@ -148,10 +188,10 @@
                 const ti = document.createElement('div');
                 ti.className = 'token-item';
                 ti.innerHTML = `
-            <span>${t.title}</span>
-            <span>${t.count}</span>
-            <strong>${t.totalRep}</strong>
-          `;
+                    <span>${t.title}</span>
+                    <span>${t.count}</span>
+                    <strong>${t.totalRep}</strong>
+                `;
                 box.appendChild(ti);
             });
             det.appendChild(box);
