@@ -95,11 +95,15 @@
         const e = document.getElementById('end').value;
         const tf= document.getElementById('tokenFilter').value.trim().toLowerCase();
         const out = document.getElementById('board');
+        const totalOut = document.getElementById('yumTotal');
         out.innerHTML = '';
+        totalOut.innerHTML = '';
+
         if (!w) {
             out.innerHTML = '<div class="error">Укажите wallet_id.</div>';
             return;
         }
+
         const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0 });
         if (s) ps.set('start_time', new Date(s).toISOString());
         if (e) ps.set('end_time',   new Date(e).toISOString());
@@ -109,7 +113,14 @@
             out.innerHTML = `<div class="error">API ${resp.status}</div>`;
             return;
         }
-        let { leaderboard } = await resp.json();
+        const data = await resp.json();
+        let leaderboard = data.leaderboard || [];
+        const totalYUM = typeof data.totalYUM === 'number' ? data.totalYUM : null;
+
+        // Отображение общего прихода YUM
+        if (totalYUM !== null) {
+            totalOut.innerText = `Общий приход токена YUM: ${totalYUM.toLocaleString()} YUM`;
+        }
 
         // Фильтрация по NFT-имени
         if (tf) {
@@ -137,6 +148,7 @@
             sum.innerHTML = `
           <div>${i+1}</div>
           <div>${item.wallet}</div>
+          <div id="yumTotal"></div>
           <div>${item.nftCount} шт.</div>
           <div>${item.total.toLocaleString()} rep</div>
         `;

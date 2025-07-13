@@ -1,3 +1,5 @@
+import { fetchYUMTransfers } from './yum-rewards.js';
+
 // api/nft-reputation.js
 import fetch from 'node-fetch';
 
@@ -110,7 +112,11 @@ export default async function handler(req, res) {
             }))
             .sort((a, b) => b.total - a.total);
 
-        return res.status(200).json({ leaderboard });
+        // 6) Подгружаем и добавляем информацию о приходе токенов YUM
+        const yumTransfers = await fetchYUMTransfers(walletId);
+        const totalYUM = yumTransfers.reduce((sum, t) => sum + (parseFloat(t.amount || '0') || 0), 0);
+
+        return res.status(200).json({ leaderboard, totalYUM });
 
     } catch (err) {
         console.error('Error in nft-reputation handler:', err);
