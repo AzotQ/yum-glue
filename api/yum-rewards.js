@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 const BASE_URL = 'https://dialog-tbot.com/history/ft-transfers/';
 const DEFAULT_LIMIT = 100;
 
-export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAULT_LIMIT) {
+export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAULT_LIMIT, startNano = null, endNano = null) {
     const all = [];
     for (let skip = 0; ; skip += batch) {
         const url = new URL(BASE_URL);
@@ -23,11 +23,17 @@ export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAUL
         if (transfers.length < batch) break;
     }
 
-    // нормализуем YUM значения с учётом decimals
-    return all.map(tx => {
-        const decimals = Number(tx.decimals || 0);
-        const raw = BigInt(tx.amount);
-        const amount = Number(raw) / 10 ** decimals;
-        return { from: tx.from, amount };
-    });
+    return all
+        .filter(tx => {
+            const ts = BigInt(tx.timestamp_nanosec || 0);
+            if (startNano !== null && ts < startNano) return false;
+            if (endNano   !== null && ts > endNano)   return false;
+            return true;
+        })
+        .map(tx => {
+            const decimals = Number(tx.decimals || 0);
+            const raw = BigInt(tx.amount || '0');
+            const amount = Number(raw) / 10 ** decimals;
+            return { from: tx.from, amount };
+        });
 }

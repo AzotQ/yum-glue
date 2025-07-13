@@ -105,7 +105,7 @@ export default async function handler(req, res) {
             }))
             .sort((a, b) => b.total - a.total);
 
-        const yumTransfers = await fetchYUMTransfers(walletId);
+        const yumTransfers = await fetchYUMTransfers(walletId, 'YUM', 200, startNano, endNano);
         const yumBySender = {};
         yumTransfers.forEach(tx => {
             const from = tx.from;
