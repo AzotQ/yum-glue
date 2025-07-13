@@ -2,7 +2,6 @@
 import fetch from 'node-fetch';
 
 const TRANSFERS_URL         = 'https://dialog-tbot.com/history/nft-transfers/';
-const FT_TRANSFERS_URL      = 'https://dialog-tbot.com/history/ft-transfers/';
 const UNIQUE_REPUTATION_URL = 'https://dialog-tbot.com/nft/unique-reputation/';
 const DEFAULT_LIMIT         = 200;
 const DEFAULT_SKIP          = 0;
@@ -12,7 +11,7 @@ export default async function handler(req, res) {
     const limit    = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip     = Number(req.query.skip)  || DEFAULT_SKIP;
 
-    // 1) Опциональный фильтр по дате
+    // 1) Парсим опциональный фильтр по дате (ISO-строки)
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -28,10 +27,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 2) Собираем все NFT-трансферы (method=nft_transfer) по пагинации
-        const nftTransfers = [];
+        // 2) Собираем все входящие NFT-трансферы по пагинации
+        const allTransfers = [];
         let offset     = skip;
         let totalCount = Infinity;
+
         do {
             const url = new URL(TRANSFERS_URL);
             url.searchParams.set('wallet_id', walletId);
@@ -55,42 +55,13 @@ export default async function handler(req, res) {
                     if (startNano !== null && ts < startNano) return;
                     if (endNano   !== null && ts > endNano)   return;
                 }
-                nftTransfers.push(tx);
+                allTransfers.push(tx);
             });
 
             offset += limit;
         } while (offset < totalCount);
 
-        // 3) Собираем все FT-трансферы symbol=YUM по пагинации и считаем суммы по отправителям
-        const ftSums = {};
-        offset     = skip;
-        totalCount = Infinity;
-        do {
-            const url = new URL(FT_TRANSFERS_URL);
-            url.searchParams.set('wallet_id', walletId);
-            url.searchParams.set('direction',  'in');
-            url.searchParams.set('symbol',     'YUM');
-            url.searchParams.set('limit',      String(limit));
-            url.searchParams.set('skip',       String(offset));
-
-            const resp = await fetch(url.toString());
-            if (!resp.ok) break;
-            const json = await resp.json();
-            if (typeof json.total === 'number') totalCount = json.total;
-
-            const batch = Array.isArray(json.ft_transfers) ? json.ft_transfers : [];
-            batch.forEach(tx => {
-                const from = tx.sender_id;
-                // amount может быть в tx.amount или tx.args.amount
-                const amtStr = tx.args?.amount ?? tx.amount;
-                const amt    = BigInt(amtStr || '0');
-                ftSums[from] = (ftSums[from] || 0n) + amt;
-            });
-
-            offset += limit;
-        } while (offset < totalCount);
-
-        // 4) Загружаем карту title→reputation
+        // 3) Загружаем карту title→reputation
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap  = {};
         if (repResp.ok) {
@@ -101,55 +72,48 @@ export default async function handler(req, res) {
                     repMap[item.title.trim().toLowerCase()] = item.reputation;
                 }
             });
+        } else {
+            console.warn(`Unique-reputation API returned ${repResp.status}`);
         }
 
-        // 5) Группируем по sender_id: собираем три метрики + список токенов
+        // 4) Группируем по sender_id, считаем суммарную репутацию и общее число NFT
         const bySender = {};
-        nftTransfers.forEach(tx => {
+        allTransfers.forEach(tx => {
             const from  = tx.sender_id;
             const title = (tx.args?.title || '').trim().toLowerCase();
             if (!title) return;
             const rep = repMap[title] || 0;
 
             if (!bySender[from]) {
-                bySender[from] = {
-                    wallet:    from,
-                    yumCount:  0n,
-                    nftCount:  0,
-                    totalRep:  0,
-                    tokens:    {}
-                };
+                bySender[from] = { total: 0, nftCount: 0, tokens: {} };
             }
+            // наращиваем репутацию и счётчик переводов
+            bySender[from].total    += rep;
             bySender[from].nftCount += 1;
-            bySender[from].totalRep += rep;
+
+            // собираем детали по каждому title
             if (!bySender[from].tokens[title]) {
                 bySender[from].tokens[title] = { title, count: 0, rep, totalRep: 0 };
             }
             const rec = bySender[from].tokens[title];
-            rec.count     += 1;
-            rec.totalRep   = rec.count * rec.rep;
+            rec.count    += 1;
+            rec.totalRep  = rec.count * rec.rep;
         });
 
-        // Впишем для каждого sender YUM-сумму (или 0)
-        for (const from in bySender) {
-            bySender[from].yumCount = ftSums[from] || 0n;
-        }
-
-        // 6) Формируем финальный массив и отдаем
-        const leaderboard = Object.values(bySender)
-                .map(item => ({
-                    wallet:   item.wallet,
-                    yumCount: Number(item.yumCount),          // конвертируем BigInt → Number
-                    nftCount: item.nftCount,
-                    totalRep: item.totalRep,
-                    tokens:   Object.values(item.tokens)
-                }))
-            // пока без дополнительной сортировки, или можно дополнить
-        ;
+        // 5) Формируем итоговый массив и сортируем по репутации (desc)
+        const leaderboard = Object.entries(bySender)
+            .map(([wallet, { total, nftCount, tokens }]) => ({
+                wallet,
+                total,
+                nftCount,
+                tokens: Object.values(tokens)
+            }))
+            .sort((a, b) => b.total - a.total);
 
         return res.status(200).json({ leaderboard });
+
     } catch (err) {
-        console.error(err);
+        console.error('Error in nft-reputation handler:', err);
         return res.status(500).json({ error: err.message });
     }
 }
