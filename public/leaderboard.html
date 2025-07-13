@@ -35,10 +35,10 @@
         <input type="text" id="wallet" value="feed_yupiks.near" />
     </label>
     <label>С:
-        <input type="datetime-local" id="start" value="2025-06-30T19:50:00" step="1" />
+        <input type="datetime-local" id="start" step="1" />
     </label>
     <label>По:
-        <input type="datetime-local" id="end"   value="2025-07-02T23:59:59" step="1" />
+        <input type="datetime-local" id="end"   step="1" />
     </label>
     <label>Имя NFT:
         <input type="text" id="tokenFilter" placeholder="Имя NFT" />
@@ -49,8 +49,25 @@
 
 <script>
     const API = '/api/nft-reputation';
+
+    // По загрузке страницы сначала устанавливаем сегодняшние 00:00–23:59, потом делаем первый fetch
+    window.addEventListener('DOMContentLoaded', () => {
+        setDefaultDates();
+        fetchBoard();
+    });
     document.getElementById('refresh').onclick = fetchBoard;
-    window.addEventListener('DOMContentLoaded', fetchBoard);
+
+    // Устанавливаем в #start и #end сегодняшнюю дату
+    function setDefaultDates() {
+        const now = new Date();
+        const Y = now.getFullYear();
+        const M = String(now.getMonth() + 1).padStart(2, '0');
+        const D = String(now.getDate()).padStart(2, '0');
+        const start = `${Y}-${M}-${D}T00:00:00`;
+        const end   = `${Y}-${M}-${D}T23:59:59`;
+        document.getElementById('start').value = start;
+        document.getElementById('end').value   = end;
+    }
 
     async function fetchBoard() {
         const w = document.getElementById('wallet').value.trim();
@@ -74,7 +91,7 @@
         }
         const { leaderboard } = await resp.json();
 
-        // Filter by token title if provided
+        // Фильтрация по названию NFT, если указано
         let data = leaderboard;
         if (tokenFilter) {
             data = leaderboard.map(item => {
@@ -107,10 +124,10 @@
                 const ti = document.createElement('div');
                 ti.className = 'token-item';
                 ti.innerHTML = `
-            <span>${t.title}</span>
-            <span>${t.count}</span>
-            <strong>${t.totalRep}</strong>
-          `;
+                    <span>${t.title}</span>
+                    <span>${t.count}</span>
+                    <strong>${t.totalRep}</strong>
+                `;
                 tokensDiv.appendChild(ti);
             });
             det.appendChild(tokensDiv);
