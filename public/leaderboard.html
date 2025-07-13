@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ЮМ-склейка</title>
+    <title>YUM склейка</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 1rem; }
         details { margin-bottom: .5rem; border: 1px solid #ccc; border-radius: 4px; }
@@ -29,16 +29,19 @@
     </style>
 </head>
 <body>
-<h1>ЮМ-склейка</h1>
+<h1>YUM склейка</h1>
 <div class="controls">
     <label>Wallet ID:
         <input type="text" id="wallet" value="feed_yupiks.near" />
     </label>
     <label>С:
-        <input type="datetime-local" id="start" value="2025-06-30T19:50:00" step="1" />
+        <input type="datetime-local" id="start" step="1" />
     </label>
     <label>По:
-        <input type="datetime-local" id="end"   value="2025-07-02T23:59:59" step="1" />
+        <input type="datetime-local" id="end"   step="1" />
+    </label>
+    <label>Имя NFT:
+        <input type="text" id="tokenFilter" placeholder="Имя NFT" />
     </label>
     <button id="refresh">Обновить</button>
 </div>
@@ -46,13 +49,31 @@
 
 <script>
     const API = '/api/nft-reputation';
+
+    // По загрузке страницы сначала устанавливаем сегодняшние 00:00–23:59, потом делаем первый fetch
+    window.addEventListener('DOMContentLoaded', () => {
+        setDefaultDates();
+        fetchBoard();
+    });
     document.getElementById('refresh').onclick = fetchBoard;
-    window.addEventListener('DOMContentLoaded', fetchBoard);
+
+    // Устанавливаем в #start и #end сегодняшнюю дату
+    function setDefaultDates() {
+        const now = new Date();
+        const Y = now.getFullYear();
+        const M = String(now.getMonth() + 1).padStart(2, '0');
+        const D = String(now.getDate()).padStart(2, '0');
+        const start = `${Y}-${M}-${D}T00:00:00`;
+        const end   = `${Y}-${M}-${D}T23:59:59`;
+        document.getElementById('start').value = start;
+        document.getElementById('end').value   = end;
+    }
 
     async function fetchBoard() {
         const w = document.getElementById('wallet').value.trim();
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
+        const tokenFilter = document.getElementById('tokenFilter').value.trim().toLowerCase();
         const container = document.getElementById('board');
         container.innerHTML = '';
         if (!w) {
@@ -69,12 +90,29 @@
             return;
         }
         const { leaderboard } = await resp.json();
-        if (!leaderboard.length) {
-            container.innerHTML = '<div class="error">Нет данных за указанный период.</div>';
+
+        // Фильтрация по названию NFT, если указано
+        let data = leaderboard;
+        if (tokenFilter) {
+            data = leaderboard.map(item => {
+                const filteredTokens = item.tokens.filter(t =>
+                    t.title.toLowerCase().includes(tokenFilter)
+                );
+                const totalFilteredRep = filteredTokens.reduce((sum, t) => sum + t.totalRep, 0);
+                return {
+                    wallet: item.wallet,
+                    total: totalFilteredRep,
+                    tokens: filteredTokens
+                };
+            }).filter(item => item.tokens.length > 0);
+        }
+
+        if (!data.length) {
+            container.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
             return;
         }
 
-        leaderboard.forEach((item, i) => {
+        data.forEach((item, i) => {
             const det = document.createElement('details');
             const sum = document.createElement('summary');
             sum.innerHTML = `<div>${i+1}</div><div>${item.wallet}</div><div>${item.total}</div>`;
@@ -86,10 +124,10 @@
                 const ti = document.createElement('div');
                 ti.className = 'token-item';
                 ti.innerHTML = `
-            <span>${t.title}</span>
-            <span>${t.count}</span>
-            <strong>${t.totalRep}</strong>
-          `;
+                    <span>${t.title}</span>
+                    <span>${t.count}</span>
+                    <strong>${t.totalRep}</strong>
+                `;
                 tokensDiv.appendChild(ti);
             });
             det.appendChild(tokensDiv);
