@@ -9,13 +9,22 @@
         body { font-family: Arial, sans-serif; padding: 1rem; }
         details { margin-bottom: .5rem; border: 1px solid #ccc; border-radius: 4px; }
         summary {
-            display: grid;
-            grid-template-columns: 1fr 3fr 2fr 2fr;
+            display: flex;
+            gap: 8px;
             padding: .5rem;
             cursor: pointer;
             background: #f9f9f9;
         }
         summary:hover { background: #f1f1f1; }
+        summary div:nth-child(1) {
+            width: 30px;
+        }
+        summary div:nth-child(2) {
+            width: calc(100% - 190px);
+        }
+        summary div:nth-child(3), summary div:nth-child(4) {
+            width: 80px;
+        }
         .tokens {
             padding: .5rem 1rem;
             background: #fff;
@@ -30,6 +39,16 @@
         .controls { margin-bottom: 1rem; }
         .controls input { margin-right: .5rem; }
         .error { color: red; padding: 1rem 0; }
+        
+        @media (max-width: 480px) {
+            .controls {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                align-items: center;
+            }
+
+        }
     </style>
 </head>
 <body>
