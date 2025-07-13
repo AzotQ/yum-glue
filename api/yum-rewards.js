@@ -22,5 +22,12 @@ export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAUL
         all.push(...transfers);
         if (transfers.length < batch) break;
     }
-    return all;
+
+    // нормализуем YUM значения с учётом decimals
+    return all.map(tx => {
+        const decimals = Number(tx.decimals || 0);
+        const raw = BigInt(tx.amount);
+        const amount = Number(raw) / 10 ** decimals;
+        return { from: tx.from, amount };
+    });
 }

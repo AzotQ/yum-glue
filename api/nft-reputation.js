@@ -108,8 +108,8 @@ export default async function handler(req, res) {
         const yumTransfers = await fetchYUMTransfers(walletId);
         const yumBySender = {};
         yumTransfers.forEach(tx => {
-            const from = tx.sender_id;
-            const amt  = parseFloat(tx.amount || '0') || 0;
+            const from = tx.from;
+            const amt = tx.amount;
             if (!yumBySender[from]) yumBySender[from] = 0;
             yumBySender[from] += amt;
         });
