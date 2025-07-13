@@ -17,8 +17,7 @@
         summary:hover { background: #f1f1f1; }
         summary div:nth-child(1) { width: 30px; }
         summary div:nth-child(2) { width: calc(100% - 230px); }
-        summary div:nth-child(3) { width: 80px; display: flex; justify-content: flex-end; }
-        summary div:nth-child(4) { width: 120px; display: flex; flex-direction: column; align-items: flex-end; }
+        summary div:nth-child(3), summary div:nth-child(4), summary div:nth-child(5) { width: 80px; display: flex; justify-content: flex-end; }
 
         .tokens {
             padding: .5rem 1rem;
@@ -133,11 +132,9 @@
             sum.innerHTML = `
                 <div>${i+1}</div>
                 <div>${item.wallet}</div>
+                <div>${item.yum?.toLocaleString?.() || 0} YUM</div>
                 <div>${item.nftCount} шт.</div>
-                <div>
-                    ${item.total.toLocaleString()} rep<br/>
-                    ${item.yum?.toLocaleString?.() || 0} YUM
-                </div>
+                <div>${item.total.toLocaleString()} rep</div>
             `;
             det.appendChild(sum);
 
