@@ -1,3 +1,4 @@
+<!-- leaderboard.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,14 +9,28 @@
         body { font-family: Arial, sans-serif; padding: 1rem; }
         details { margin-bottom: .5rem; border: 1px solid #ccc; border-radius: 4px; }
         summary {
-            display: grid;
-            grid-template-columns: 1fr 3fr 2fr;
+            display: flex;
+            gap: 8px;
             padding: .5rem;
             cursor: pointer;
             background: #f9f9f9;
         }
         summary:hover { background: #f1f1f1; }
-        .tokens { padding: .5rem 1rem; background: #fff; }
+        summary div:nth-child(1) {
+            width: 30px;
+        }
+        summary div:nth-child(2) {
+            width: calc(100% - 190px);
+        }
+        summary div:nth-child(3), summary div:nth-child(4) {
+            width: 80px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .tokens {
+            padding: .5rem 1rem;
+            background: #fff;
+        }
         .token-item {
             display: grid;
             grid-template-columns: 4fr 1fr 2fr;
@@ -26,6 +41,16 @@
         .controls { margin-bottom: 1rem; }
         .controls input { margin-right: .5rem; }
         .error { color: red; padding: 1rem 0; }
+        
+        @media (max-width: 480px) {
+            .controls {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                align-items: center;
+            }
+
+        }
     </style>
 </head>
 <body>
@@ -50,34 +75,29 @@
 <script>
     const API = '/api/nft-reputation';
 
-    // По загрузке страницы сначала устанавливаем сегодняшние 00:00–23:59, потом делаем первый fetch
     window.addEventListener('DOMContentLoaded', () => {
         setDefaultDates();
         fetchBoard();
     });
     document.getElementById('refresh').onclick = fetchBoard;
 
-    // Устанавливаем в #start и #end сегодняшнюю дату
     function setDefaultDates() {
         const now = new Date();
-        const Y = now.getFullYear();
-        const M = String(now.getMonth() + 1).padStart(2, '0');
-        const D = String(now.getDate()).padStart(2, '0');
-        const start = `${Y}-${M}-${D}T00:00:00`;
-        const end   = `${Y}-${M}-${D}T23:59:59`;
-        document.getElementById('start').value = start;
-        document.getElementById('end').value   = end;
+        const Y = now.getFullYear(), M = String(now.getMonth()+1).padStart(2,'0');
+        const D = String(now.getDate()).padStart(2,'0');
+        document.getElementById('start').value = `${Y}-${M}-${D}T00:00:00`;
+        document.getElementById('end').value   = `${Y}-${M}-${D}T23:59:59`;
     }
 
     async function fetchBoard() {
         const w = document.getElementById('wallet').value.trim();
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
-        const tokenFilter = document.getElementById('tokenFilter').value.trim().toLowerCase();
-        const container = document.getElementById('board');
-        container.innerHTML = '';
+        const tf= document.getElementById('tokenFilter').value.trim().toLowerCase();
+        const out = document.getElementById('board');
+        out.innerHTML = '';
         if (!w) {
-            container.innerHTML = '<div class="error">Укажите wallet_id.</div>';
+            out.innerHTML = '<div class="error">Укажите wallet_id.</div>';
             return;
         }
         const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0 });
@@ -86,52 +106,56 @@
 
         const resp = await fetch(`${API}?${ps}`);
         if (!resp.ok) {
-            container.innerHTML = `<div class="error">API ${resp.status}</div>`;
+            out.innerHTML = `<div class="error">API ${resp.status}</div>`;
             return;
         }
-        const { leaderboard } = await resp.json();
+        let { leaderboard } = await resp.json();
 
-        // Фильтрация по названию NFT, если указано
-        let data = leaderboard;
-        if (tokenFilter) {
-            data = leaderboard.map(item => {
-                const filteredTokens = item.tokens.filter(t =>
-                    t.title.toLowerCase().includes(tokenFilter)
-                );
-                const totalFilteredRep = filteredTokens.reduce((sum, t) => sum + t.totalRep, 0);
+        // Фильтрация по NFT-имени
+        if (tf) {
+            leaderboard = leaderboard.map(item => {
+                const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
+                const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
+                const nftCnt   = filtered.reduce((sum, t) => sum + t.count, 0);
                 return {
-                    wallet: item.wallet,
-                    total: totalFilteredRep,
-                    tokens: filteredTokens
+                    wallet:   item.wallet,
+                    total:    totalRep,
+                    nftCount: nftCnt,
+                    tokens:   filtered
                 };
-            }).filter(item => item.tokens.length > 0);
+            }).filter(item => item.tokens.length);
         }
 
-        if (!data.length) {
-            container.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+        if (!leaderboard.length) {
+            out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
             return;
         }
 
-        data.forEach((item, i) => {
+        leaderboard.forEach((item, i) => {
             const det = document.createElement('details');
             const sum = document.createElement('summary');
-            sum.innerHTML = `<div>${i+1}</div><div>${item.wallet}</div><div>${item.total}</div>`;
+            sum.innerHTML = `
+          <div>${i+1}</div>
+          <div>${item.wallet}</div>
+          <div>${item.nftCount} шт.</div>
+          <div>${item.total.toLocaleString()} rep</div>
+        `;
             det.appendChild(sum);
 
-            const tokensDiv = document.createElement('div');
-            tokensDiv.className = 'tokens';
+            const box = document.createElement('div');
+            box.className = 'tokens';
             item.tokens.forEach(t => {
                 const ti = document.createElement('div');
                 ti.className = 'token-item';
                 ti.innerHTML = `
-                    <span>${t.title}</span>
-                    <span>${t.count}</span>
-                    <strong>${t.totalRep}</strong>
-                `;
-                tokensDiv.appendChild(ti);
+            <span>${t.title}</span>
+            <span>${t.count}</span>
+            <strong>${t.totalRep}</strong>
+          `;
+                box.appendChild(ti);
             });
-            det.appendChild(tokensDiv);
-            container.appendChild(det);
+            det.appendChild(box);
+            out.appendChild(det);
         });
     }
 </script>

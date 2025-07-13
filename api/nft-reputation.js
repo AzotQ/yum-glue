@@ -1,3 +1,4 @@
+// api/nft-reputation.js
 import fetch from 'node-fetch';
 
 const TRANSFERS_URL         = 'https://dialog-tbot.com/history/nft-transfers/';
@@ -10,7 +11,7 @@ export default async function handler(req, res) {
     const limit    = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip     = Number(req.query.skip)  || DEFAULT_SKIP;
 
-    // Optional filter by date
+    // 1) Парсим опциональный фильтр по дате (ISO-строки)
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -26,10 +27,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Download all incoming NFT transfers by pagination, filtering only method='nft_transfer'
+        // 2) Собираем все входящие NFT-трансферы по пагинации
         const allTransfers = [];
         let offset     = skip;
         let totalCount = Infinity;
+
         do {
             const url = new URL(TRANSFERS_URL);
             url.searchParams.set('wallet_id', walletId);
@@ -43,7 +45,7 @@ export default async function handler(req, res) {
             if (typeof json.total === 'number') totalCount = json.total;
 
             const batch = Array.isArray(json.nft_transfers) ? json.nft_transfers : [];
-            if (batch.length === 0) break;
+            if (!batch.length) break;
 
             batch.forEach(tx => {
                 if (tx.method !== 'nft_transfer') return;
@@ -59,7 +61,7 @@ export default async function handler(req, res) {
             offset += limit;
         } while (offset < totalCount);
 
-        // Load map title→reputation
+        // 3) Загружаем карту title→reputation
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap  = {};
         if (repResp.ok) {
@@ -71,31 +73,25 @@ export default async function handler(req, res) {
                 }
             });
         } else {
-            console.warn(`Unique-reputation API returned ${repResp.status}, skipping reputations`);
+            console.warn(`Unique-reputation API returned ${repResp.status}`);
         }
 
-        // Group by sender_id, collect total, tokens and date of first shipment
+        // 4) Группируем по sender_id, считаем суммарную репутацию и общее число NFT
         const bySender = {};
         allTransfers.forEach(tx => {
             const from  = tx.sender_id;
             const title = (tx.args?.title || '').trim().toLowerCase();
             if (!title) return;
-
             const rep = repMap[title] || 0;
-            const ts  = tx.timestamp_nanosec
-                ? BigInt(tx.timestamp_nanosec)
-                : null;
 
             if (!bySender[from]) {
-                // at first appearance - initialize total, tokens and firstTs
-                bySender[from] = { total: 0, tokens: {}, firstTs: ts };
-            } else if (ts !== null && ts < bySender[from].firstTs) {
-                // update if we find an earlier shipment.
-                bySender[from].firstTs = ts;
+                bySender[from] = { total: 0, nftCount: 0, tokens: {} };
             }
+            // наращиваем репутацию и счётчик переводов
+            bySender[from].total    += rep;
+            bySender[from].nftCount += 1;
 
-            bySender[from].total += rep;
-
+            // собираем детали по каждому title
             if (!bySender[from].tokens[title]) {
                 bySender[from].tokens[title] = { title, count: 0, rep, totalRep: 0 };
             }
@@ -104,22 +100,18 @@ export default async function handler(req, res) {
             rec.totalRep  = rec.count * rec.rep;
         });
 
-        // Form an array, sort by firstTs (oldest at the beginning), remove firstTs from the final output
+        // 5) Формируем итоговый массив и сортируем по репутации (desc)
         const leaderboard = Object.entries(bySender)
-            .map(([wallet, { total, tokens, firstTs }]) => ({
+            .map(([wallet, { total, nftCount, tokens }]) => ({
                 wallet,
                 total,
-                tokens: Object.values(tokens),
-                firstTs
+                nftCount,
+                tokens: Object.values(tokens)
             }))
-            .sort((a, b) => {
-                if (a.firstTs < b.firstTs) return -1;
-                if (a.firstTs > b.firstTs) return 1;
-                return 0;
-            })
-            .map(({ firstTs, ...rest }) => rest);
+            .sort((a, b) => b.total - a.total);
 
         return res.status(200).json({ leaderboard });
+
     } catch (err) {
         console.error('Error in nft-reputation handler:', err);
         return res.status(500).json({ error: err.message });
