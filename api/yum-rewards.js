@@ -27,13 +27,17 @@ export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAUL
         .filter(tx => {
             const ts = BigInt(tx.timestamp_nanosec || 0);
             if (startNano !== null && ts < startNano) return false;
-            if (endNano   !== null && ts > endNano)   return false;
+            if (endNano !== null && ts > endNano) return false;
             return true;
         })
         .map(tx => {
             const decimals = Number(tx.decimals || 0);
             const raw = BigInt(tx.amount || '0');
             const amount = Number(raw) / 10 ** decimals;
-            return { from: tx.from, amount };
+            return {
+                from: tx.from,
+                amount,
+                timestamp: tx.timestamp_nanosec
+            };
         });
 }
