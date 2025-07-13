@@ -22,7 +22,7 @@
         summary div:nth-child(2) {
             width: calc(100% - 190px);
         }
-        summary div:nth-child(3), summary div:nth-child(4), summary div:nth-child(5) {
+        summary div:nth-child(3), summary div:nth-child(4) {
             width: 80px;
             display: flex;
             justify-content: flex-end;
@@ -111,13 +111,18 @@
         }
         let { leaderboard } = await resp.json();
 
-        // NFT-фильтр по названию
+        // Фильтрация по NFT-имени
         if (tf) {
             leaderboard = leaderboard.map(item => {
                 const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
                 const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
                 const nftCnt   = filtered.reduce((sum, t) => sum + t.count, 0);
-                return { ...item, total: totalRep, nftCount: nftCnt, tokens: filtered };
+                return {
+                    wallet:   item.wallet,
+                    total:    totalRep,
+                    nftCount: nftCnt,
+                    tokens:   filtered
+                };
             }).filter(item => item.tokens.length);
         }
 
@@ -132,8 +137,7 @@
             sum.innerHTML = `
           <div>${i+1}</div>
           <div>${item.wallet}</div>
-          <div>NFT ${item.nftCount} шт.</div>
-          <div>${item.yumCount.toLocaleString()} YUM</div>
+          <div>${item.nftCount} шт.</div>
           <div>${item.total.toLocaleString()} rep</div>
         `;
             det.appendChild(sum);
