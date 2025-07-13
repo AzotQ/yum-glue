@@ -133,7 +133,11 @@ export default async function handler(req, res) {
         leaderboard.sort((a, b) => {
             if (!a.firstNftTs) return 1;
             if (!b.firstNftTs) return -1;
-            return BigInt(a.firstNftTs) - BigInt(b.firstNftTs);
+            const tsA = BigInt(a.firstNftTs);
+            const tsB = BigInt(b.firstNftTs);
+            if (tsA < tsB) return -1;
+            if (tsA > tsB) return 1;
+            return 0;
         });
 
         return res.status(200).json({ leaderboard });
