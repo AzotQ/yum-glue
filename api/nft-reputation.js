@@ -66,7 +66,7 @@ export default async function handler(req, res) {
             const url = new URL(FT_TRANSFERS_URL);
             url.searchParams.set('wallet_id', walletId);
             url.searchParams.set('direction',  'in');
-            url.searchParams.set('symbol',     SYMBOL);
+            url.searchParams.set('symbol',     'YUM');
             url.searchParams.set('limit',      String(limit));
             url.searchParams.set('skip',       String(offset));
             const resp = await fetch(url);
