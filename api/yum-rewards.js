@@ -3,9 +3,8 @@ import fetch from 'node-fetch';
 
 const BASE_URL = 'https://dialog-tbot.com/history/ft-transfers/';
 const DEFAULT_LIMIT = 100;
-const DEFAULT_SKIP  = 0;
 
-export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = 200) {
+export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAULT_LIMIT) {
     const all = [];
     for (let skip = 0; ; skip += batch) {
         const url = new URL(BASE_URL);
