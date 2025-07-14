@@ -57,6 +57,10 @@
         .controls { margin-bottom: 1rem; }
         .controls input { margin-right: .5rem; }
         .error { color: red; padding: 1rem 0; }
+        button#exportCsv {
+            display: flex;
+            margin: 0 auto;
+        }
 
         @media (max-width: 480px) {
             .controls {
@@ -107,14 +111,18 @@
 
 <div id="board"></div>
 
+<button id="exportCsv">Export CSV</button>
+
 <script>
     const API = '/api/nft-reputation';
+    let currentData = [];
 
     window.addEventListener('DOMContentLoaded', () => {
         setDefaultDates();
         fetchBoard();
     });
     document.getElementById('refresh').onclick = fetchBoard;
+    document.getElementById('exportCsv').onclick = exportCsv;
 
     function setDefaultDates() {
         const now = new Date();
@@ -165,8 +173,11 @@
 
         if (!leaderboard.length) {
             out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+            currentData = [];
             return;
         }
+
+        currentData = leaderboard;  // save for CSV
 
         leaderboard.forEach((item, i) => {
             const det = document.createElement('details');
@@ -198,6 +209,34 @@
             out.appendChild(det);
         });
     }
+
+    function exportCsv() {
+        if (!currentData.length) {
+            alert('Нет данных для экспорта.');
+            return;
+        }
+        // Header
+        const header = ['#','Wallet','Amount of YUM','Amount of NFT','Amount of Rep'];
+        const rows = currentData.map((item, idx) => [
+            idx+1,
+            `"${item.wallet}"`,
+            item.yum,
+            item.nftCount,
+            item.total
+        ]);
+        const csvContent = [header, ...rows]
+            .map(r => r.join(','))
+            .join('\r\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `yum-glue_${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
 </script>
 </body>
 </html>
