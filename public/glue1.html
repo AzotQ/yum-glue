@@ -62,18 +62,53 @@
             margin: 0 auto;
         }
 
-        .spinner {
-            display: none;
-            margin: 1rem auto;
-            border: 4px solid #eee;
-            border-top: 4px solid #333;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
+        .loader-container {
+            position: relative;
+            float: left;
+            width: 250px;
+            height: 250px;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .loader-container .loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+        }
+        .clock .loader {
+            width: 100px;
+            height: 100px;
+        }
+        .clock .loader .arc {
+            position: relative;
+            margin: 23% 0 0 23%;
+            border: 2px solid #FFF;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .clock .loader .arc::after, .clock .loader .arc::before {
+            content: '';
+            position: absolute;
+            top: 4%;
+            left: 48%;
+            width: 4%;
+            height: 46%;
+            background-color: #FFF;
+            transform-origin: 50% 100%;
+            border-radius: 5px;
+            animation: rotate 2s infinite linear;
+        }
+        .clock .loader .arc::after {
+            height: 36%;
+            top: 14%;
+            animation-duration: 12s;
+        }
+        @keyframes rotate {
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 480px) {
@@ -123,7 +158,11 @@
     <button id="refresh">Обновить</button>
 </div>
 
-<div id="spinner" class="spinner"></div>
+<div id="spinner" class="loader-container clock">
+    <div class="loader">
+        <div class="arc"></div>
+    </div>
+</div>
 
 <div id="board"></div>
 
