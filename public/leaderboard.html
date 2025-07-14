@@ -62,6 +62,54 @@
             margin: 0 auto;
         }
 
+        .loader-container {
+            position: relative;
+            width: 100%;
+            height: 100px;
+        }
+        .loader-container .loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+        }
+        .clock .loader {
+            width: 100px;
+            height: 100px;
+        }
+        .clock .loader .arc {
+            position: relative;
+            margin: 23% 0 0 23%;
+            border: 2px solid #2b00ff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .clock .loader .arc::after, .clock .loader .arc::before {
+            content: '';
+            position: absolute;
+            top: 4%;
+            left: 48%;
+            width: 4%;
+            height: 46%;
+            background-color: #2b00ff;
+            transform-origin: 50% 100%;
+            border-radius: 5px;
+            animation: rotate 2s infinite linear;
+        }
+        .clock .loader .arc::after {
+            height: 36%;
+            top: 14%;
+            animation-duration: 12s;
+        }
+        @keyframes rotate {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
         @media (max-width: 480px) {
             .controls {
                 display: flex;
@@ -109,6 +157,12 @@
     <button id="refresh">Обновить</button>
 </div>
 
+<div id="spinner" class="loader-container clock">
+    <div class="loader">
+        <div class="arc"></div>
+    </div>
+</div>
+
 <div id="board"></div>
 
 <button id="exportCsv">Export CSV</button>
@@ -133,6 +187,9 @@
     }
 
     async function fetchBoard() {
+        const spinner = document.getElementById('spinner');
+        spinner.style.display = 'block';
+
         const w = document.getElementById('wallet').value.trim();
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
@@ -142,6 +199,7 @@
 
         if (!w) {
             out.innerHTML = '<div class="error">Укажите wallet_id.</div>';
+            spinner.style.display = 'none';
             return;
         }
 
@@ -173,6 +231,7 @@
 
         if (!leaderboard.length) {
             out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+            spinner.style.display = 'none';
             currentData = [];
             return;
         }
@@ -207,6 +266,8 @@
             });
             det.appendChild(box);
             out.appendChild(det);
+
+            spinner.style.display = 'none';
         });
     }
 
