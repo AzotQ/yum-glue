@@ -1,4 +1,3 @@
-// api/yum-rewards.js
 import fetch from 'node-fetch';
 
 const BASE_URL = 'https://dialog-tbot.com/history/ft-transfers/';

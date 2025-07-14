@@ -1,4 +1,3 @@
-// api/nft-reputation.js
 import fetch from 'node-fetch';
 import { fetchYUMTransfers } from './yum-rewards.js';
 
@@ -58,7 +57,7 @@ export default async function handler(req, res) {
 
                 allTransfers.push(tx);
 
-                // сохраняем первую метку времени по sender_id
+                // save the first timestamp by sender_id
                 const from = tx.sender_id;
                 const ts = BigInt(tx.timestamp_nanosec);
                 if (!nftFirstTs[from] || ts < BigInt(nftFirstTs[from])) {
@@ -129,7 +128,7 @@ export default async function handler(req, res) {
             entry.yum = yumBySender[entry.wallet] || 0;
         });
 
-        // Сортировка по дате первого NFT трансфера
+        // Sort by date of first NFT transfer
         leaderboard.sort((a, b) => {
             if (!a.firstNftTs) return 1;
             if (!b.firstNftTs) return -1;
