@@ -193,6 +193,7 @@
 
         if (!leaderboard.length) {
             out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+            spinner.style.display = 'none';
             currentData = [];
             return;
         }
