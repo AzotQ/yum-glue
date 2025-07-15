@@ -44,8 +44,9 @@
         }
 
         .tokens {
-            padding: .5rem 1rem;
+            padding: .5rem 1rem 50px;
             background: #fff;
+            position: relative;
         }
         .token-item {
             display: grid;
@@ -54,6 +55,14 @@
             border-bottom: 1px solid #eee;
         }
         .token-item:last-child { border-bottom: none; }
+        .copy-btn {
+            position: absolute;
+            bottom: .5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: .9rem;
+            padding: .2rem .5rem;
+        }
         .controls { margin-bottom: 1rem; }
         .controls input { margin-right: .5rem; }
         .error { color: red; padding: 1rem 0; }
@@ -256,19 +265,37 @@
             `;
             det.appendChild(sum);
 
-            const box = document.createElement('div');
-            box.className = 'tokens';
+            const tokensDiv = document.createElement('div');
+            tokensDiv.className = 'tokens';
+
+            // Copy button
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.textContent = 'Copy';
+            btn.onclick = () => {
+                // generate tabular text
+                const header = 'Title\tCount\tTotalRep\n';
+                const rows = item.tokens.map(t =>
+                    `${t.title}\t${t.count}\t${t.totalRep}`
+                ).join('\n');
+                const text = header + rows;
+                navigator.clipboard.writeText(text);
+            };
+            tokensDiv.appendChild(btn);
+
+            // список токенов
             item.tokens.forEach(t => {
                 const ti = document.createElement('div');
                 ti.className = 'token-item';
                 ti.innerHTML = `
-                    <span>${t.title}</span>
-                    <span>${t.count}</span>
-                    <strong>${t.totalRep}</strong>
-                `;
-                box.appendChild(ti);
+            <span>${t.title}</span>
+            <span>${t.count}</span>
+            <strong>${t.totalRep}</strong>
+          `;
+                tokensDiv.appendChild(ti);
             });
-            det.appendChild(box);
+
+            det.appendChild(tokensDiv);
             out.appendChild(det);
 
             spinner.style.display = 'none';
