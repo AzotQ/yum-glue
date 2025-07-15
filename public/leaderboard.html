@@ -65,7 +65,8 @@
         .loader-container {
             position: relative;
             width: 100%;
-            height: 100px;
+            height: 60px;
+            margin: 30px 0 0;
         }
         .loader-container .loader {
             position: absolute;
@@ -77,14 +78,16 @@
         }
         .clock .loader {
             width: 100px;
-            height: 100px;
+            height: 60px;
         }
         .clock .loader .arc {
-            position: relative;
-            margin: 23% 0 0 23%;
-            border: 2px solid #2b00ff;
-            width: 50px;
-            height: 50px;
+            position: absolute;
+            top: -10px;
+            right: 5px;
+            margin: 0 auto;
+            border: 2px solid #327ac6;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
         }
         .clock .loader .arc::after, .clock .loader .arc::before {
@@ -160,6 +163,7 @@
 <div id="spinner" class="loader-container clock">
     <div class="loader">
         <div class="arc"></div>
+        <div class="morj"><img src="public/morj.gif" width="100" height="50"></div>
     </div>
 </div>
 
@@ -230,7 +234,7 @@
         }
 
         if (!leaderboard.length) {
-            out.innerHTML = '<div class="error">Нет данных за указанный период.</div>';
+            out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
             spinner.style.display = 'none';
             currentData = [];
             return;
