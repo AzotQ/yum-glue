@@ -57,8 +57,9 @@
         .token-item:last-child { border-bottom: none; }
         .copy-btn {
             position: absolute;
-            top: .5rem;
-            right: 1rem;
+            bottom: .5rem;
+            left: 50%;
+            transform: translateX(-50%);
             font-size: .9rem;
             padding: .2rem .5rem;
         }
@@ -267,6 +268,21 @@
             const tokensDiv = document.createElement('div');
             tokensDiv.className = 'tokens';
 
+            // Copy button
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.textContent = 'Copy';
+            btn.onclick = () => {
+                // generate tabular text
+                const header = 'Title\tCount\tTotalRep\n';
+                const rows = item.tokens.map(t =>
+                    `${t.title}\t${t.count}\t${t.totalRep}`
+                ).join('\n');
+                const text = header + rows;
+                navigator.clipboard.writeText(text);
+            };
+            tokensDiv.appendChild(btn);
+
             // список токенов
             item.tokens.forEach(t => {
                 const ti = document.createElement('div');
@@ -278,21 +294,6 @@
           `;
                 tokensDiv.appendChild(ti);
             });
-
-            // кнопка Копировать
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.textContent = 'Скопировать';
-            btn.onclick = () => {
-                // формируем табличный текст
-                const header = 'Title\tCount\tTotalRep\n';
-                const rows = item.tokens.map(t =>
-                    `${t.title}\t${t.count}\t${t.totalRep}`
-                ).join('\n');
-                const text = header + rows;
-                navigator.clipboard.writeText(text);
-            };
-            tokensDiv.appendChild(btn);
 
             det.appendChild(tokensDiv);
             out.appendChild(det);
