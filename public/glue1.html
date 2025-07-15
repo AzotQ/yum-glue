@@ -267,6 +267,18 @@
             const tokensDiv = document.createElement('div');
             tokensDiv.className = 'tokens';
 
+            // список токенов
+            item.tokens.forEach(t => {
+                const ti = document.createElement('div');
+                ti.className = 'token-item';
+                ti.innerHTML = `
+            <span>${t.title}</span>
+            <span>${t.count}</span>
+            <strong>${t.totalRep}</strong>
+          `;
+                tokensDiv.appendChild(ti);
+            });
+
             // кнопка Копировать
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
@@ -281,18 +293,6 @@
                 navigator.clipboard.writeText(text);
             };
             tokensDiv.appendChild(btn);
-
-            // список токенов
-            item.tokens.forEach(t => {
-                const ti = document.createElement('div');
-                ti.className = 'token-item';
-                ti.innerHTML = `
-            <span>${t.title}</span>
-            <span>${t.count}</span>
-            <strong>${t.totalRep}</strong>
-          `;
-                tokensDiv.appendChild(ti);
-            });
 
             det.appendChild(tokensDiv);
             out.appendChild(det);
