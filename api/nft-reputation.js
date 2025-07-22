@@ -11,6 +11,9 @@ export default async function handler(req, res) {
     const limit = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip = Number(req.query.skip) || DEFAULT_SKIP;
 
+    // Получаем параметр direction из запроса, по умолчанию 'in'
+    const direction = req.query.direction === 'out' ? 'out' : 'in';
+
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -34,7 +37,7 @@ export default async function handler(req, res) {
         do {
             const url = new URL(TRANSFERS_URL);
             url.searchParams.set('wallet_id', walletId);
-            url.searchParams.set('direction', 'in');
+            url.searchParams.set('direction', direction); // теперь динамический direction
             url.searchParams.set('limit', String(limit));
             url.searchParams.set('skip', String(offset));
 
@@ -114,7 +117,8 @@ export default async function handler(req, res) {
                 firstNftTs: nftFirstTs[wallet] || null
             }));
 
-        const yumTransfers = await fetchYUMTransfers(walletId, 'YUM', 200, startNano, endNano);
+        // Передаём direction в fetchYUMTransfers
+        const yumTransfers = await fetchYUMTransfers(walletId, 'YUM', 200, startNano, endNano, direction);
         const yumBySender = {};
 
         yumTransfers.forEach(tx => {
