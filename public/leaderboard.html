@@ -166,6 +166,15 @@
     <label>Имя NFT:
         <input type="text" id="tokenFilter" placeholder="Имя NFT" />
     </label>
+
+    <!-- Новый селект для выбора direction -->
+    <label>Направление:
+        <select id="direction">
+            <option value="in" selected>in</option>
+            <option value="out">out</option>
+        </select>
+    </label>
+
     <button id="refresh">Обновить</button>
 </div>
 
@@ -207,6 +216,7 @@
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
         const tf= document.getElementById('tokenFilter').value.trim().toLowerCase();
+        const direction = document.getElementById('direction').value;  // Получаем направление
         const out = document.getElementById('board');
         out.innerHTML = '';
 
@@ -219,6 +229,7 @@
         const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0 });
         if (s) ps.set('start_time', new Date(s).toISOString());
         if (e) ps.set('end_time',   new Date(e).toISOString());
+        ps.set('direction', direction);  // Добавляем параметр direction в запрос
 
         const resp = await fetch(`${API}?${ps}`);
         if (!resp.ok) {
