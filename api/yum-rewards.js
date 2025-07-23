@@ -1,3 +1,8 @@
+import fetch from 'node-fetch';
+
+const BASE_URL = 'https://dialog-tbot.com/history/ft-transfers/';
+const DEFAULT_LIMIT = 100;
+
 export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAULT_LIMIT, startNano = null, endNano = null, direction = 'in') {
     const all = [];
     for (let skip = 0; ; skip += batch) {
@@ -28,7 +33,6 @@ export async function fetchYUMTransfers(walletId, symbol = 'YUM', batch = DEFAUL
             const decimals = Number(tx.decimals || 0);
             const raw = BigInt(tx.amount || '0');
             const amount = Number(raw) / 10 ** decimals;
-            // Возвращаем from и to для возможности группировки
             return { from: tx.from, to: tx.to || null, amount };
         });
 }
