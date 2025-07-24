@@ -121,16 +121,6 @@ export default async function handler(req, res) {
             rec.totalRep = rec.count * rec.rep;
         });
 
-        let leaderboard = Object.entries(byKey)
-            .map(([wallet, { total, nftCount, tokens }]) => ({
-                wallet,
-                total,
-                nftCount,
-                tokens: Object.values(tokens),
-                yum: 0,
-                firstNftTs: nftFirstTs[wallet] || null
-            }));
-
         // Получаем FT-трансферы для выбранного токена symbol
         const yumTransfers = await fetchYUMTransfers(walletId, symbol, 200, startNano, endNano, direction);
         const yumByKey = {};
@@ -144,10 +134,22 @@ export default async function handler(req, res) {
             yumByKey[key] += tx.amount;
         });
 
-        leaderboard.forEach(entry => {
-            entry.yum = yumByKey[entry.wallet] || 0;
+        // Объединяем ключи из NFT и YUM для формирования итогового leaderboard
+        const allKeys = new Set([...Object.keys(byKey), ...Object.keys(yumByKey)]);
+
+        let leaderboard = Array.from(allKeys).map(key => {
+            const nftData = byKey[key] || { total: 0, nftCount: 0, tokens: {} };
+            return {
+                wallet: key,
+                total: nftData.total,
+                nftCount: nftData.nftCount,
+                tokens: Object.values(nftData.tokens),
+                yum: yumByKey[key] || 0,
+                firstNftTs: nftFirstTs[key] || null
+            };
         });
 
+        // Сортируем по дате первой NFT трансфера
         leaderboard.sort((a, b) => {
             if (!a.firstNftTs) return 1;
             if (!b.firstNftTs) return -1;
