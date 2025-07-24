@@ -11,10 +11,8 @@ export default async function handler(req, res) {
     const limit = Number(req.query.limit) || DEFAULT_LIMIT;
     const skip = Number(req.query.skip) || DEFAULT_SKIP;
 
-    // direction: 'in' или 'out', по умолчанию 'in'
     const direction = req.query.direction === 'out' ? 'out' : 'in';
 
-    // Обработка параметра symbol с проверкой по списку разрешённых значений
     const allowedSymbols = ['YUM', 'GRECHA', 'NEAR', 'Darai', 'HOPE', 'YUPLAND', 'NTDarai', 'JHOLUDI'];
     const symbolParam = typeof req.query.symbol === 'string' ? req.query.symbol : 'YUM';
     const symbol = allowedSymbols.includes(symbolParam) ? symbolParam : 'YUM';
@@ -68,7 +66,6 @@ export default async function handler(req, res) {
                 const from = tx.sender_id;
                 const to = tx.args?.receiver_id;
 
-                // Ключ группировки зависит от направления
                 const key = direction === 'out' ? to : from;
                 const ts = BigInt(tx.timestamp_nanosec);
                 if (key && (!nftFirstTs[key] || ts < BigInt(nftFirstTs[key]))) {
@@ -79,7 +76,6 @@ export default async function handler(req, res) {
             offset += limit;
         } while (offset < totalCount);
 
-        // Получаем данные по репутации NFT
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap = {};
         if (repResp.ok) {
@@ -94,7 +90,6 @@ export default async function handler(req, res) {
             console.warn(`Unique-reputation API returned ${repResp.status}`);
         }
 
-        // Группируем данные по ключу (отправитель или получатель)
         const byKey = {};
         allTransfers.forEach(tx => {
             const from = tx.sender_id;
@@ -121,9 +116,9 @@ export default async function handler(req, res) {
             rec.totalRep = rec.count * rec.rep;
         });
 
-        // Получаем FT-трансферы для выбранного токена symbol
         const yumTransfers = await fetchYUMTransfers(walletId, symbol, 200, startNano, endNano, direction);
         const yumByKey = {};
+        const firstYumTs = {};
 
         yumTransfers.forEach(tx => {
             const from = tx.from;
@@ -132,31 +127,44 @@ export default async function handler(req, res) {
             if (!key) return;
             if (!yumByKey[key]) yumByKey[key] = 0;
             yumByKey[key] += tx.amount;
+
+            const ts = BigInt(tx.timestamp_nanosec || '0');
+            if (ts > 0) {
+                if (!firstYumTs[key] || ts < BigInt(firstYumTs[key])) {
+                    firstYumTs[key] = tx.timestamp_nanosec;
+                }
+            }
         });
 
-        // Объединяем ключи из NFT и YUM для формирования итогового leaderboard
         const allKeys = new Set([...Object.keys(byKey), ...Object.keys(yumByKey)]);
 
         let leaderboard = Array.from(allKeys).map(key => {
             const nftData = byKey[key] || { total: 0, nftCount: 0, tokens: {} };
+            const nftTs = nftFirstTs[key] ? BigInt(nftFirstTs[key]) : null;
+            const yumTs = firstYumTs[key] ? BigInt(firstYumTs[key]) : null;
+
+            let firstTxTs = null;
+            if (nftTs !== null && yumTs !== null) {
+                firstTxTs = nftTs < yumTs ? nftTs : yumTs;
+            } else {
+                firstTxTs = nftTs || yumTs || null;
+            }
+
             return {
                 wallet: key,
                 total: nftData.total,
                 nftCount: nftData.nftCount,
                 tokens: Object.values(nftData.tokens),
                 yum: yumByKey[key] || 0,
-                firstNftTs: nftFirstTs[key] || null
+                firstTxTs
             };
         });
 
-        // Сортируем по дате первой NFT трансфера
         leaderboard.sort((a, b) => {
-            if (!a.firstNftTs) return 1;
-            if (!b.firstNftTs) return -1;
-            const tsA = BigInt(a.firstNftTs);
-            const tsB = BigInt(b.firstNftTs);
-            if (tsA < tsB) return -1;
-            if (tsA > tsB) return 1;
+            if (a.firstTxTs === null) return 1;
+            if (b.firstTxTs === null) return -1;
+            if (a.firstTxTs < b.firstTxTs) return -1;
+            if (a.firstTxTs > b.firstTxTs) return 1;
             return 0;
         });
 
