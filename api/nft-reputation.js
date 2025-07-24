@@ -14,6 +14,11 @@ export default async function handler(req, res) {
     // direction: 'in' или 'out', по умолчанию 'in'
     const direction = req.query.direction === 'out' ? 'out' : 'in';
 
+    // Обработка параметра symbol с проверкой по списку разрешённых значений
+    const allowedSymbols = ['YUM', 'GRECHA', 'NEAR', 'Darai', 'HOPE', 'YUPLAND', 'NTDarai', 'JHOLUDI'];
+    const symbolParam = typeof req.query.symbol === 'string' ? req.query.symbol : 'YUM';
+    const symbol = allowedSymbols.includes(symbolParam) ? symbolParam : 'YUM';
+
     let startNano = null, endNano = null;
     if (req.query.start_time) {
         const d = Date.parse(req.query.start_time);
@@ -60,12 +65,10 @@ export default async function handler(req, res) {
 
                 allTransfers.push(tx);
 
-                // Определяем ключ: для in — sender_id, для out — receiver_id
-                // Здесь будет использован при группировке ниже
                 const from = tx.sender_id;
                 const to = tx.args?.receiver_id;
 
-                // Сохраняем минимальный timestamp для ключа, учитывая direction
+                // Ключ группировки зависит от направления
                 const key = direction === 'out' ? to : from;
                 const ts = BigInt(tx.timestamp_nanosec);
                 if (key && (!nftFirstTs[key] || ts < BigInt(nftFirstTs[key]))) {
@@ -76,7 +79,7 @@ export default async function handler(req, res) {
             offset += limit;
         } while (offset < totalCount);
 
-        // Получаем репутацию уникальных NFT
+        // Получаем данные по репутации NFT
         const repResp = await fetch(UNIQUE_REPUTATION_URL);
         const repMap = {};
         if (repResp.ok) {
@@ -91,7 +94,8 @@ export default async function handler(req, res) {
             console.warn(`Unique-reputation API returned ${repResp.status}`);
         }
 
-        const byKey = {}; // ключ — либо отправитель (in), либо получатель (out)
+        // Группируем данные по ключу (отправитель или получатель)
+        const byKey = {};
         allTransfers.forEach(tx => {
             const from = tx.sender_id;
             const to = tx.args?.receiver_id;
@@ -99,7 +103,6 @@ export default async function handler(req, res) {
             if (!title) return;
             const rep = repMap[title] || 0;
 
-            // Ключ зависит от направления
             const key = direction === 'out' ? to : from;
             if (!key) return;
 
@@ -128,15 +131,14 @@ export default async function handler(req, res) {
                 firstNftTs: nftFirstTs[wallet] || null
             }));
 
-        // Получаем YUM трансферы, группируем по ключу (отправитель/получатель)
-        const yumTransfers = await fetchYUMTransfers(walletId, 'YUM', 200, startNano, endNano, direction);
+        // Получаем FT-трансферы для выбранного токена symbol
+        const yumTransfers = await fetchYUMTransfers(walletId, symbol, 200, startNano, endNano, direction);
         const yumByKey = {};
 
         yumTransfers.forEach(tx => {
-            // Для FT-трансферов ключ зависит от direction
             const from = tx.from;
-            const to = tx.to; // здесь в твоём примере to есть, но нужно проверить, что fetchYUMTransfers возвращает
-            const key = direction === 'out' ? (tx.to || null) : from;
+            const to = tx.to || null;
+            const key = direction === 'out' ? to : from;
             if (!key) return;
             if (!yumByKey[key]) yumByKey[key] = 0;
             yumByKey[key] += tx.amount;
@@ -146,7 +148,6 @@ export default async function handler(req, res) {
             entry.yum = yumByKey[entry.wallet] || 0;
         });
 
-        // Сортируем по дате первой NFT трансфера
         leaderboard.sort((a, b) => {
             if (!a.firstNftTs) return 1;
             if (!b.firstNftTs) return -1;
