@@ -168,6 +168,12 @@ export default async function handler(req, res) {
             return 0;
         });
 
+        // Преобразуем BigInt в строку для сериализации
+        leaderboard = leaderboard.map(item => ({
+            ...item,
+            firstTxTs: item.firstTxTs !== null ? item.firstTxTs.toString() : null,
+        }));
+
         return res.status(200).json({ leaderboard });
 
     } catch (err) {
