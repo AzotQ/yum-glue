@@ -13,6 +13,15 @@
             padding: 1rem;
             margin: 0 auto;
             max-width: 840px;
+            background-image: url(/public/bg-glue.jpg);
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .wrapper-container {
+            background: #bcb5bfb3;
+            padding: 5px 15px 25px;
         }
         .controls {
             display: flex;
@@ -223,6 +232,10 @@
             .filters-wrapper {
                 flex-flow: wrap;
             }
+            .filters-wrapper input {
+                max-width: 150px;
+                margin: 1px 2px;
+            }
         }
 
         .mode-select,
@@ -234,96 +247,98 @@
     </style>
 </head>
 <body>
-<h1>YUM склейка</h1>
+<div class="wrapper-container">
+    <h1>YUM склейка</h1>
 
-<div class="controls">
-    <div class="mode-select">
-        <label>
-            Mode:
-            <select id="mode">
-                <option value="token+nft+rep" selected="">token+nft+rep</option>
-                <option value="token+nft">token+nft</option>
-                <option value="nft+rep">nft+rep</option>
-                <option value="token">token</option>
-                <option value="nft">nft</option>
-            </select>
-        </label>
+    <div class="controls">
+        <div class="mode-select">
+            <label>
+                Mode:
+                <select id="mode">
+                    <option value="token+nft+rep" selected="">token+nft+rep</option>
+                    <option value="token+nft">token+nft</option>
+                    <option value="nft+rep">nft+rep</option>
+                    <option value="token">token</option>
+                    <option value="nft">nft</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="controls-wrapper">
+            <label>
+                Wallet ID:
+                <input type="text" id="wallet" value="feed_yupiks.near">
+            </label>
+            <label>
+                From:
+                <input type="datetime-local" id="start" step="1">
+            </label>
+            <label>
+                On:
+                <input type="datetime-local" id="end" step="1">
+            </label>
+        </div>
+
+        <div class="filters-wrapper">
+            <label id="tokenFilterLabel" style="display: none;">
+                NFT title:
+                <input type="text" id="tokenFilter" placeholder="Имя NFT">
+            </label>
+            <label class="direction-label">
+                Direction:
+                <select id="direction">
+                    <option value="in" selected="">in</option>
+                    <option value="out">out</option>
+                </select>
+            </label>
+            <label id="symbolLabel">
+                Token:
+                <select id="symbol">
+                    <option value="Darai">Darai</option>
+                    <option value="GRECHA">GRECHA</option>
+                    <option value="YUM" selected="">YUM</option>
+                    <option value="RNBW">RNBW </option>
+                    <option value="JHOLUDI">JHOLUDI</option>
+                    <option value="NTDarai">NTDarai</option>
+                    <option value="HOPE">HOPE</option>
+                    <option value="YUPLAND">YUPLAND</option>
+                </select>
+            </label>
+
+            <label>
+                Search by wallet:
+                <input type="text" id="walletSearch" placeholder="Поиск кошелька">
+            </label>
+        </div>
+
+        <button id="refresh">Refresh</button>
+
+        <div class="sort-wrapper">
+            <label>
+                Sorting:
+                <select id="sortBy">
+                    <option value="firstTxTsAsc" selected="">First txn ↑</option>
+                    <option value="firstTxTsDesc">First txn ↓</option>
+
+                    <option value="yumDesc">Tokens Count ↓</option>
+                    <option value="yumAsc">Tokens Count ↑</option>
+                </select>
+            </label>
+        </div>
     </div>
 
-    <div class="controls-wrapper">
-        <label>
-            Wallet ID:
-            <input type="text" id="wallet" value="feed_yupiks.near">
-        </label>
-        <label>
-            From:
-            <input type="datetime-local" id="start" step="1">
-        </label>
-        <label>
-            On:
-            <input type="datetime-local" id="end" step="1">
-        </label>
+    <div id="spinner" class="loader-container clock" style="display:none;">
+        <div class="loader">
+            <div class="arc"></div>
+            <div class="morj"><img src="public/morj.gif" width="100" height="50" alt="loading" /></div>
+        </div>
     </div>
 
-    <div class="filters-wrapper">
-        <label id="tokenFilterLabel" style="display: none;">
-            NFT title:
-            <input type="text" id="tokenFilter" placeholder="Имя NFT">
-        </label>
-        <label class="direction-label">
-            Direction:
-            <select id="direction">
-                <option value="in" selected="">in</option>
-                <option value="out">out</option>
-            </select>
-        </label>
-        <label id="symbolLabel">
-            Token:
-            <select id="symbol">
-                <option value="Darai">Darai</option>
-                <option value="GRECHA">GRECHA</option>
-                <option value="YUM" selected="">YUM</option>
-                <option value="RNBW">RNBW </option>
-                <option value="JHOLUDI">JHOLUDI</option>
-                <option value="NTDarai">NTDarai</option>
-                <option value="HOPE">HOPE</option>
-                <option value="YUPLAND">YUPLAND</option>
-            </select>
-        </label>
+    <div id="board"></div>
+    <div id="pagination"></div>
 
-        <label>
-            Search by wallet:
-            <input type="text" id="walletSearch" placeholder="Поиск кошелька">
-        </label>
-    </div>
-
-    <button id="refresh">Refresh</button>
-
-    <div class="sort-wrapper">
-        <label>
-            Sorting:
-            <select id="sortBy">
-                <option value="firstTxTsAsc" selected="">First txn ↑</option>
-                <option value="firstTxTsDesc">First txn ↓</option>
-
-                <option value="yumDesc">Tokens Count ↓</option>
-                <option value="yumAsc">Tokens Count ↑</option>
-            </select>
-        </label>
-    </div>
+    <button id="exportCsv">Export</button>
 </div>
-
-<div id="spinner" class="loader-container clock" style="display:none;">
-    <div class="loader">
-        <div class="arc"></div>
-        <div class="morj"><img src="public/morj.gif" width="100" height="50" alt="loading" /></div>
-    </div>
-</div>
-
-<div id="board"></div>
-<div id="pagination"></div>
-
-<button id="exportCsv">Export</button>
 
 <script>
     const API = '/api/nft-reputation';
