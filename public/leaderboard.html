@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="shortcut icon" href="public/favicon.ico" type="image/x-icon">
     <link rel="icon" href="public/favicon.png" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <title>YUM склейка</title>
     <style>
@@ -22,6 +25,42 @@
         .wrapper-container {
             background: #bcb5bfb3;
             padding: 5px 15px 25px;
+        }
+        h1 {
+            margin: 10px auto 5px;
+            text-align: center;
+            color: #ab00d3;
+            text-shadow: 0px 0px 7px #ffffff;
+        }
+        h4.subtitle {
+            text-align: center;
+            margin: -20px auto 15px;
+            color: #ab00d3;
+            text-shadow: 0px 0px 7px #fff;
+            font-family: "Space Mono", monospace;
+            font-weight: 700;
+            font-style: normal;
+            font-size: 19px;
+            display: inline-flex;
+            justify-content: center;
+            width: 100%;
+        }
+        .copy-address {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .copy-address:after {
+            content: '';
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+            top: 1px;
+            width: 20px;
+            height: 20px;
+            background-image: url('data:image/svg+xml,<!--%3Fxml version="1.0" encoding="UTF-8"%3F--><!-- The Best Svg Icon site in the world: iconSvg.co, Visit us! https://iconsvg.co --><svg id="svg" fill="%23ffffff" stroke="%23ffffff" width="200" height="200" version="1.1" viewBox="144 144 512 512" xmlns="http://www.w3.org/2000/svg"><g id="IconSvg_bgCarrier" stroke-width="0"></g><g id="IconSvg_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="%23CCCCCC" stroke-width="0"><path xmlns="http://www.w3.org/2000/svg" d="m578.43 211.07h-293.89c-6.2969 0-10.496 4.1992-10.496 10.496v41.984h-52.48c-6.2969 0-10.496 4.1992-10.496 10.496v304.39c0 6.2969 4.1992 10.496 10.496 10.496h295.99c6.2969 0 10.496-4.1992 10.496-10.496v-45.133l50.379-0.003906c6.2969 0 10.496-4.1992 10.496-10.496v-301.23c0-6.2969-4.1953-10.496-10.496-10.496zm-71.371 356.86h-275v-283.39h51.43 1.0508 222.52zm60.875-55.629h-39.887l0.003906-238.26c0-6.2969-4.1992-10.496-10.496-10.496h-222.52v-31.488h272.9z"></path></g><g id="IconSvg_iconCarrier"><path xmlns="http://www.w3.org/2000/svg" d="m578.43 211.07h-293.89c-6.2969 0-10.496 4.1992-10.496 10.496v41.984h-52.48c-6.2969 0-10.496 4.1992-10.496 10.496v304.39c0 6.2969 4.1992 10.496 10.496 10.496h295.99c6.2969 0 10.496-4.1992 10.496-10.496v-45.133l50.379-0.003906c6.2969 0 10.496-4.1992 10.496-10.496v-301.23c0-6.2969-4.1953-10.496-10.496-10.496zm-71.371 356.86h-275v-283.39h51.43 1.0508 222.52zm60.875-55.629h-39.887l0.003906-238.26c0-6.2969-4.1992-10.496-10.496-10.496h-222.52v-31.488h272.9z"></path></g></svg>');
+            background-size: cover;
         }
         .controls {
             display: flex;
@@ -250,6 +289,7 @@
 <body>
 <div class="wrapper-container">
     <h1>YUM склейка</h1>
+    <h4 class="subtitle">YUM на&nbsp;<div class="copy-address">feed_yupiks.near</div></h4>
 
     <div class="controls">
         <div class="mode-select">
@@ -643,6 +683,21 @@
         next.onclick = () => { currentPage++; renderFilteredItems(); };
         pagDiv.appendChild(next);
     }
+
+    // Copy wallet
+    const copyAddress = document.querySelector('.copy-address');
+    const alertOverlay = document.getElementById('custom-alert');
+    const alertText = document.getElementById('custom-alert-text');
+    let alertTimeout;
+
+    copyAddress.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(copyAddress.textContent.trim());
+            showCustomAlert('Адрес скопирован в буфер обмена!');
+        } catch (err) {
+            fallbackCopyTextToClipboard(copyAddress.textContent.trim());
+        }
+    });
 
     // xlsx export
     function exportExcel() {
