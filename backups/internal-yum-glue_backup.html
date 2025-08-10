@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>YUM склейка</title>
     <style>
         body {
@@ -13,22 +13,26 @@
         }
         .controls {
             display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         details {
-            margin-bottom: .5rem;
+            margin-bottom: 0.5rem;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
         summary {
             display: flex;
             gap: 8px;
-            padding: .5rem;
+            padding: 0.5rem;
             cursor: pointer;
             background: #f9f9f9;
             box-sizing: border-box;
             align-items: center;
         }
-        summary:hover { background: #f1f1f1; }
+        summary:hover {
+            background: #f1f1f1;
+        }
         summary .wallet-value {
             width: calc(100% - 100px);
         }
@@ -44,31 +48,42 @@
         }
 
         .tokens {
-            padding: .5rem 1rem 50px;
+            padding: 0.5rem 1rem 50px;
             background: #fff;
             position: relative;
         }
         .token-item {
             display: grid;
-            grid-template-columns: 4fr 1fr 2fr;
-            padding: .25rem 0;
+            grid-template-columns: 10fr 1fr 1.5fr;
+            padding: 0.25rem 0;
             border-bottom: 1px solid #eee;
         }
-        .token-item:last-child { border-bottom: none; }
+        .token-item:last-child {
+            border-bottom: none;
+        }
         .copy-btn {
             position: absolute;
-            bottom: .5rem;
+            bottom: 0.5rem;
             left: 50%;
             transform: translateX(-50%);
-            font-size: .9rem;
-            padding: .2rem .5rem;
+            font-size: 0.9rem;
+            padding: 0.2rem 0.5rem;
         }
-        .controls { margin-bottom: 1rem; }
-        .controls input { margin-right: .5rem; }
-        .error { color: red; padding: 1rem 0; }
+        .controls input,
+        .controls select {
+            margin-right: 0.5rem;
+            padding: 0.3rem 0.5rem;
+            font-size: 1rem;
+        }
+        .error {
+            color: red;
+            padding: 1rem 0;
+        }
         button#exportCsv {
             display: flex;
             margin: 0 auto;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
         }
 
         .loader-container {
@@ -99,7 +114,8 @@
             height: 20px;
             border-radius: 50%;
         }
-        .clock .loader .arc::after, .clock .loader .arc::before {
+        .clock .loader .arc::after,
+        .clock .loader .arc::before {
             content: '';
             position: absolute;
             top: 4%;
@@ -154,25 +170,51 @@
 <h1>YUM склейка</h1>
 
 <div class="controls">
-    <label>Wallet ID:
+    <label>
+        Wallet ID:
         <input type="text" id="wallet" value="feed_yupiks.near" />
     </label>
-    <label>С:
+    <label>
+        С:
         <input type="datetime-local" id="start" step="1" />
     </label>
-    <label>По:
+    <label>
+        По:
         <input type="datetime-local" id="end" step="1" />
     </label>
-    <label>Имя NFT:
+    <label>
+        Имя NFT:
         <input type="text" id="tokenFilter" placeholder="Имя NFT" />
     </label>
+    <label>
+        Направление:
+        <select id="direction">
+            <option value="in" selected>in</option>
+            <option value="out">out</option>
+        </select>
+    </label>
+    <label>
+        Токен:
+        <select id="symbol">
+            <option value="Darai" selected>Darai</option>
+            <option value="GRECHA">GRECHA</option>
+            <option value="YUM">YUM</option>
+            <option value="JHOLUDI">JHOLUDI</option>
+            <option value="NTDarai">NTDarai</option>
+            <option value="HOPE">HOPE</option>
+            <option value="YUPLAND">YUPLAND</option>
+        </select>
+    </label>
+
     <button id="refresh">Обновить</button>
 </div>
 
-<div id="spinner" class="loader-container clock">
+<div id="spinner" class="loader-container clock" style="display: none">
     <div class="loader">
         <div class="arc"></div>
-        <div class="morj"><img src="public/morj.gif" width="100" height="50"></div>
+        <div class="morj">
+            <img src="public/morj.gif" width="100" height="50" alt="loading" />
+        </div>
     </div>
 </div>
 
@@ -183,6 +225,7 @@
 <script>
     const API = '/api/nft-reputation';
     let currentData = [];
+    let currentSymbol = 'YUM'; // текущее значение токена
 
     window.addEventListener('DOMContentLoaded', () => {
         setDefaultDates();
@@ -193,10 +236,11 @@
 
     function setDefaultDates() {
         const now = new Date();
-        const Y = now.getFullYear(), M = String(now.getMonth()+1).padStart(2,'0');
-        const D = String(now.getDate()).padStart(2,'0');
+        const Y = now.getFullYear(),
+            M = String(now.getMonth() + 1).padStart(2, '0');
+        const D = String(now.getDate()).padStart(2, '0');
         document.getElementById('start').value = `${Y}-${M}-${D}T00:00:00`;
-        document.getElementById('end').value   = `${Y}-${M}-${D}T23:59:59`;
+        document.getElementById('end').value = `${Y}-${M}-${D}T23:59:59`;
     }
 
     async function fetchBoard() {
@@ -206,7 +250,11 @@
         const w = document.getElementById('wallet').value.trim();
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
-        const tf= document.getElementById('tokenFilter').value.trim().toLowerCase();
+        const tf = document.getElementById('tokenFilter').value.trim().toLowerCase();
+        const direction = document.getElementById('direction').value;
+        const symbol = document.getElementById('symbol').value;
+        currentSymbol = symbol; // сохраняем текущее выбранное значение
+
         const out = document.getElementById('board');
         out.innerHTML = '';
 
@@ -218,88 +266,100 @@
 
         const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0 });
         if (s) ps.set('start_time', new Date(s).toISOString());
-        if (e) ps.set('end_time',   new Date(e).toISOString());
+        if (e) ps.set('end_time', new Date(e).toISOString());
+        ps.set('direction', direction);
+        ps.set('symbol', symbol);
 
-        const resp = await fetch(`${API}?${ps}`);
-        if (!resp.ok) {
-            out.innerHTML = `<div class="error">API ${resp.status}</div>`;
-            return;
-        }
-        let { leaderboard } = await resp.json();
+        try {
+            const resp = await fetch(`${API}?${ps}`);
+            if (!resp.ok) {
+                out.innerHTML = `<div class="error">API ${resp.status}</div>`;
+                spinner.style.display = 'none';
+                return;
+            }
+            let { leaderboard } = await resp.json();
 
-        if (tf) {
-            leaderboard = leaderboard.map(item => {
-                const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
-                const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
-                const nftCnt   = filtered.reduce((sum, t) => sum + t.count, 0);
-                return {
-                    wallet:   item.wallet,
-                    total:    totalRep,
-                    nftCount: nftCnt,
-                    tokens:   filtered,
-                    yum:      item.yum
-                };
-            }).filter(item => item.tokens.length);
-        }
+            if (tf) {
+                leaderboard = leaderboard
+                    .map((item) => {
+                        const filtered = item.tokens.filter((t) =>
+                            t.title.toLowerCase().includes(tf)
+                        );
+                        const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
+                        const nftCnt = filtered.reduce((sum, t) => sum + t.count, 0);
+                        return {
+                            wallet: item.wallet,
+                            total: totalRep,
+                            nftCount: nftCnt,
+                            tokens: filtered,
+                            yum: item.yum,
+                        };
+                    })
+                    .filter((item) => item.tokens.length);
+            }
 
-        if (!leaderboard.length) {
-            out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
-            spinner.style.display = 'none';
-            currentData = [];
-            return;
-        }
+            if (!leaderboard.length) {
+                out.innerHTML =
+                    '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+                spinner.style.display = 'none';
+                currentData = [];
+                return;
+            }
 
-        currentData = leaderboard;  // save for CSV
+            currentData = leaderboard; // save for CSV
 
-        leaderboard.forEach((item, i) => {
-            const det = document.createElement('details');
-            const sum = document.createElement('summary');
-            sum.innerHTML = `
-                <div>${i+1}</div>
+            leaderboard.forEach((item, i) => {
+                const det = document.createElement('details');
+                const sum = document.createElement('summary');
+                sum.innerHTML = `
+                <div>${i + 1}</div>
                 <div class="wallet-value">${item.wallet}</div>
                 <div class="summary-count">
-                <div>${item.yum?.toLocaleString?.() || 0} YUM</div>
+                <div>${item.yum?.toLocaleString?.() || 0} ${currentSymbol}</div>
                 <div>${item.nftCount} шт.</div>
                 <div>${item.total.toLocaleString()} rep</div>
                 </div>
             `;
-            det.appendChild(sum);
+                det.appendChild(sum);
 
-            const tokensDiv = document.createElement('div');
-            tokensDiv.className = 'tokens';
+                const tokensDiv = document.createElement('div');
+                tokensDiv.className = 'tokens';
 
-            // Copy button
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.textContent = 'Copy';
-            btn.onclick = () => {
-                // generate tabular text
-                const header = 'Title\tCount\tTotalRep\n';
-                const rows = item.tokens.map(t =>
-                    `${t.title}\t${t.count}\t${t.totalRep}`
-                ).join('\n');
-                const text = header + rows;
-                navigator.clipboard.writeText(text);
-            };
-            tokensDiv.appendChild(btn);
+                // Copy button
+                const btn = document.createElement('button');
+                btn.className = 'copy-btn';
+                btn.textContent = 'Copy';
+                btn.onclick = () => {
+                    // generate tabular text
+                    const header = 'Title\tCount\tTotalRep\n';
+                    const rows = item.tokens
+                        .map((t) => `${t.title}\t${t.count}\t${t.totalRep}`)
+                        .join('\n');
+                    const text = header + rows;
+                    navigator.clipboard.writeText(text);
+                };
+                tokensDiv.appendChild(btn);
 
-            // список токенов
-            item.tokens.forEach(t => {
-                const ti = document.createElement('div');
-                ti.className = 'token-item';
-                ti.innerHTML = `
+                // список токенов
+                item.tokens.forEach((t) => {
+                    const ti = document.createElement('div');
+                    ti.className = 'token-item';
+                    ti.innerHTML = `
             <span>${t.title}</span>
             <span>${t.count}</span>
             <strong>${t.totalRep}</strong>
           `;
-                tokensDiv.appendChild(ti);
+                    tokensDiv.appendChild(ti);
+                });
+
+                det.appendChild(tokensDiv);
+                out.appendChild(det);
             });
-
-            det.appendChild(tokensDiv);
-            out.appendChild(det);
-
+        } catch (err) {
+            out.innerHTML = `<div class="error">Ошибка запроса: ${err.message}</div>`;
+        } finally {
             spinner.style.display = 'none';
-        });
+        }
     }
 
     function exportCsv() {
@@ -308,29 +368,28 @@
             return;
         }
         // Header
-        const header = ['#','Wallet','Amount of YUM','Amount of NFT','Amount of Rep'];
+        const header = ['#', 'Wallet', `Amount of ${currentSymbol}`, 'Amount of NFT', 'Amount of Rep'];
         const rows = currentData.map((item, idx) => [
-            idx+1,
+            idx + 1,
             `"${item.wallet}"`,
             item.yum,
             item.nftCount,
-            item.total
+            item.total,
         ]);
         const csvContent = [header, ...rows]
-            .map(r => r.join(','))
+            .map((r) => r.join(','))
             .join('\r\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
-        a.href     = url;
+        a.href = url;
         a.download = `yum-glue_${s}-${e}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     }
-
 </script>
 </body>
 </html>

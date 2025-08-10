@@ -2,7 +2,13 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="shortcut icon" href="public/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="public/favicon.png" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <title>YUM склейка</title>
     <style>
         body {
@@ -10,71 +16,148 @@
             padding: 1rem;
             margin: 0 auto;
             max-width: 840px;
+            background-image: url(/public/bg-glue.jpg);
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .wrapper-container {
+            background: #bcb5bfb3;
+            padding: 5px 15px 25px;
+            border-radius: 10px;
+        }
+        h1 {
+            margin: 10px auto 5px;
+            text-align: center;
+            color: #ab00d3;
+            text-shadow: 0px 0px 7px #ffffff;
+        }
+        h4.subtitle {
+            text-align: center;
+            margin: -20px auto 15px;
+            color: #ab00d3;
+            text-shadow: 0px 0px 7px #fff;
+            font-family: "Space Mono", monospace;
+            font-weight: 700;
+            font-style: normal;
+            font-size: 19px;
+            display: inline-flex;
+            justify-content: center;
+            width: 100%;
+        }
+        .copy-address {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .copy-address:after {
+            content: '';
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+            top: 1px;
+            width: 20px;
+            height: 20px;
+            background-image: url('data:image/svg+xml,<!--%3Fxml version="1.0" encoding="UTF-8"%3F--><!-- The Best Svg Icon site in the world: iconSvg.co, Visit us! https://iconsvg.co --><svg id="svg" fill="%23ffffff" stroke="%23ffffff" width="200" height="200" version="1.1" viewBox="144 144 512 512" xmlns="http://www.w3.org/2000/svg"><g id="IconSvg_bgCarrier" stroke-width="0"></g><g id="IconSvg_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="%23CCCCCC" stroke-width="0"><path xmlns="http://www.w3.org/2000/svg" d="m578.43 211.07h-293.89c-6.2969 0-10.496 4.1992-10.496 10.496v41.984h-52.48c-6.2969 0-10.496 4.1992-10.496 10.496v304.39c0 6.2969 4.1992 10.496 10.496 10.496h295.99c6.2969 0 10.496-4.1992 10.496-10.496v-45.133l50.379-0.003906c6.2969 0 10.496-4.1992 10.496-10.496v-301.23c0-6.2969-4.1953-10.496-10.496-10.496zm-71.371 356.86h-275v-283.39h51.43 1.0508 222.52zm60.875-55.629h-39.887l0.003906-238.26c0-6.2969-4.1992-10.496-10.496-10.496h-222.52v-31.488h272.9z"></path></g><g id="IconSvg_iconCarrier"><path xmlns="http://www.w3.org/2000/svg" d="m578.43 211.07h-293.89c-6.2969 0-10.496 4.1992-10.496 10.496v41.984h-52.48c-6.2969 0-10.496 4.1992-10.496 10.496v304.39c0 6.2969 4.1992 10.496 10.496 10.496h295.99c6.2969 0 10.496-4.1992 10.496-10.496v-45.133l50.379-0.003906c6.2969 0 10.496-4.1992 10.496-10.496v-301.23c0-6.2969-4.1953-10.496-10.496-10.496zm-71.371 356.86h-275v-283.39h51.43 1.0508 222.52zm60.875-55.629h-39.887l0.003906-238.26c0-6.2969-4.1992-10.496-10.496-10.496h-222.52v-31.488h272.9z"></path></g></svg>');
+            background-size: cover;
         }
         .controls {
             display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }
+        .controls label {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-end;
+        }
+        .mode-select,
+        .controls-wrapper,
+        .filters-wrapper,
+        .sort-wrapper {
+            display: flex;
+            width: 100%;
+        }
+
         details {
-            margin-bottom: .5rem;
+            margin-bottom: 0.5rem;
             border: 1px solid #ccc;
             border-radius: 4px;
+            border-radius: 10px;
+            overflow: hidden;
         }
         summary {
             display: flex;
             gap: 8px;
-            padding: .5rem;
+            padding: 0.5rem;
             cursor: pointer;
-            background: #f9f9f9;
+            background: #b1b2e1e6;
             box-sizing: border-box;
             align-items: center;
         }
-        summary:hover { background: #f1f1f1; }
+        summary:hover {
+            background: #9293b9e6;
+        }
         summary .wallet-value {
             width: calc(100% - 100px);
         }
         summary .summary-count {
             display: flex;
             flex-direction: column;
-            width: 100px;
+            width: 150px;
             justify-content: flex-end;
             gap: 5px;
             text-align: end;
             align-items: center;
             white-space: nowrap;
         }
-
         .tokens {
-            padding: .5rem 1rem 50px;
-            background: #fff;
+            padding: 0.5rem 1rem 50px;
+            background: #9293b9e6;
             position: relative;
+            border-radius: 0 0 10px 10px;
         }
         .token-item {
             display: grid;
             grid-template-columns: 10fr 1fr 1.5fr;
-            padding: .25rem 0;
+            padding: 0.25rem 0;
             border-bottom: 1px solid #eee;
         }
-        .token-item:last-child { border-bottom: none; }
+        .token-item:last-child {
+            border-bottom: none;
+        }
         .copy-btn {
             position: absolute;
-            bottom: .5rem;
+            bottom: 0.5rem;
             left: 50%;
             transform: translateX(-50%);
-            font-size: .9rem;
-            padding: .2rem .5rem;
+            font-size: 0.9rem;
+            padding: 0.2rem 0.5rem;
         }
-        .controls { margin-bottom: 1rem; }
-        .controls input { margin-right: .5rem; }
-        .error { color: red; padding: 1rem 0; }
+        .controls input,
+        .controls select {
+            margin-right: 0.5rem;
+            padding: 0.3rem 0.5rem;
+            font-size: 1rem;
+        }
+        .error {
+            color: #0011ff;
+            padding: 1rem 0;
+        }
+        button#refresh,
         button#exportCsv {
             display: flex;
             margin: 0 auto;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
         }
-
         .loader-container {
             position: relative;
             width: 100%;
-            height: 60px;
+            height: 100px;
             margin: 30px 0 0;
         }
         .loader-container .loader {
@@ -87,7 +170,7 @@
         }
         .clock .loader {
             width: 100px;
-            height: 60px;
+            height: 100px;
         }
         .clock .loader .arc {
             position: absolute;
@@ -99,7 +182,8 @@
             height: 20px;
             border-radius: 50%;
         }
-        .clock .loader .arc::after, .clock .loader .arc::before {
+        .clock .loader .arc::after,
+        .clock .loader .arc::before {
             content: '';
             position: absolute;
             top: 4%;
@@ -122,12 +206,48 @@
             }
         }
 
+        #pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0 5px 0;
+        }
+        #pagination button {
+            padding: 2px 7px;
+            font-size: 1rem;
+            min-width: 32px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            cursor: pointer;
+        }
+        #pagination button[disabled] {
+            background: #eee;
+            color: #999;
+            cursor: default;
+        }
+        #pagination .active-page {
+            background: #327ac6;
+            color: #fff;
+            border-color: #327ac6;
+        }
+
         @media (max-width: 480px) {
             .controls {
                 display: flex;
                 flex-direction: column;
                 gap: 5px;
                 align-items: center;
+            }
+            .controls label {
+                font-size: 13px;
+                line-height: 1.2;
+            }
+            .controls input, .controls select {
+                padding: 1.5px 2px;
+                font-size: 13px;
+                margin: 0 2px;
             }
             summary {
                 justify-content: flex-start;
@@ -140,56 +260,226 @@
             summary .summary-count {
                 gap: 5px;
                 align-items: center;
-                width: 100px;
+                width: 150px;
                 white-space: nowrap;
             }
             summary .summary-count > div {
                 width: 100%;
                 max-width: 100%;
             }
+            .mode-select, .controls-wrapper, .filters-wrapper, .sort-wrapper {
+                flex-direction: column;
+                gap: 5px;
+                margin: 2px 0;
+            }
+            .filters-wrapper {
+                flex-flow: wrap;
+            }
+            .filters-wrapper input {
+                max-width: 150px;
+                margin: 1px 2px;
+            }
+        }
+
+        .mode-select,
+        .controls-wrapper > label:first-child,
+        label.direction-label,
+        label#symbolLabel,
+        button#exportCsv {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-<h1>YUM склейка</h1>
+<div class="wrapper-container">
+    <h1>YUM склейка</h1>
+    <h4 class="subtitle">YUM на&nbsp;<div class="copy-address">feed_yupiks.near</div></h4>
 
-<div class="controls">
-    <label>Wallet ID:
-        <input type="text" id="wallet" value="feed_yupiks.near" />
-    </label>
-    <label>С:
-        <input type="datetime-local" id="start" step="1" />
-    </label>
-    <label>По:
-        <input type="datetime-local" id="end" step="1" />
-    </label>
-    <label>Имя NFT:
-        <input type="text" id="tokenFilter" placeholder="Имя NFT" />
-    </label>
-    <button id="refresh">Обновить</button>
-</div>
+    <div class="controls">
+        <div class="mode-select">
+            <label>
+                Mode:
+                <select id="mode">
+                    <option value="token+nft+rep" selected="">token+nft+rep</option>
+                    <option value="token+nft">token+nft</option>
+                    <option value="nft+rep">nft+rep</option>
+                    <option value="token">token</option>
+                    <option value="nft">nft</option>
+                </select>
+            </label>
+        </div>
 
-<div id="spinner" class="loader-container clock">
-    <div class="loader">
-        <div class="arc"></div>
-        <div class="morj"><img src="public/morj.gif" width="100" height="50"></div>
+        <div class="controls-wrapper">
+            <label>
+                Wallet ID:
+                <input type="text" id="wallet" value="feed_yupiks.near">
+            </label>
+            <label>
+                From:
+                <input type="datetime-local" id="start" step="1">
+            </label>
+            <label>
+                On:
+                <input type="datetime-local" id="end" step="1">
+            </label>
+        </div>
+
+        <div class="filters-wrapper">
+            <label id="tokenFilterLabel" style="display: none;">
+                NFT title:
+                <input type="text" id="tokenFilter" placeholder="Имя NFT">
+            </label>
+            <label class="direction-label">
+                Direction:
+                <select id="direction">
+                    <option value="in" selected="">in</option>
+                    <option value="out">out</option>
+                </select>
+            </label>
+            <label id="symbolLabel">
+                Token:
+                <select id="symbol">
+                    <option value="Darai">Darai</option>
+                    <option value="GRECHA">GRECHA</option>
+                    <option value="YUM" selected="">YUM</option>
+                    <option value="RNBW">RNBW </option>
+                    <option value="JHOLUDI">JHOLUDI</option>
+                    <option value="NTDarai">NTDarai</option>
+                    <option value="HOPE">HOPE</option>
+                    <option value="YUPLAND">YUPLAND</option>
+                </select>
+            </label>
+
+            <label>
+                Search by wallet:
+                <input type="text" id="walletSearch" placeholder="Поиск кошелька">
+            </label>
+        </div>
+
+        <button id="refresh">Refresh</button>
+
+        <div class="sort-wrapper">
+            <label>
+                Sorting:
+                <select id="sortBy">
+                    <option value="firstTxTsAsc" selected="">First txn ↑</option>
+                    <option value="firstTxTsDesc">First txn ↓</option>
+
+                    <option value="yumDesc">Tokens Count ↓</option>
+                    <option value="yumAsc">Tokens Count ↑</option>
+                </select>
+            </label>
+        </div>
     </div>
+
+    <div id="spinner" class="loader-container clock" style="display:none;">
+        <div class="loader">
+            <div class="morj"><img src="public/loading.gif" width="100" height="100" alt="loading" /></div>
+        </div>
+    </div>
+
+    <div id="board"></div>
+    <div id="pagination"></div>
+
+    <button id="exportCsv">Export</button>
 </div>
-
-<div id="board"></div>
-
-<button id="exportCsv">Export CSV</button>
 
 <script>
     const API = '/api/nft-reputation';
     let currentData = [];
+    let filteredData = [];
+    let currentSymbol = 'YUM';
+
+    let debounceTimer;
+    const ROWS_PER_PAGE = 30;
+    let currentPage = 1;
 
     window.addEventListener('DOMContentLoaded', () => {
         setDefaultDates();
+        updateUIByMode();
         fetchBoard();
     });
-    document.getElementById('refresh').onclick = fetchBoard;
-    document.getElementById('exportCsv').onclick = exportCsv;
+
+    document.getElementById('refresh').onclick = () => {
+        resetAndFetch();
+    };
+
+    document.getElementById('mode').addEventListener('change', () => {
+        updateUIByMode();
+        resetAndFetch();
+    });
+
+    document.getElementById('walletSearch').addEventListener('input', debounceFilterSort);
+    document.getElementById('sortBy').addEventListener('change', debounceFilterSort);
+
+    document.getElementById('tokenFilter').addEventListener('input', debounceFilterSort);
+    document.getElementById('direction').addEventListener('change', debounceFilterSort);
+    document.getElementById('symbol').addEventListener('change', debounceFilterSort);
+
+    function debounceFilterSort(delay = 300) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            applyFilterSort();
+            renderFilteredItems();
+        }, delay);
+    }
+
+    function updateUIByMode() {
+        const mode = document.getElementById('mode').value;
+
+        const tokenFilterLabel = document.getElementById('tokenFilterLabel');
+        const symbolLabel = document.getElementById('symbolLabel');
+        const sortBySelect = document.getElementById('sortBy');
+
+        if (mode === 'token' || mode === 'nft+rep') {
+            tokenFilterLabel.style.display = 'none';
+        } else {
+            tokenFilterLabel.style.display = '';
+        }
+
+        if (mode === 'nft' || mode === 'nft+rep') {
+            symbolLabel.style.display = 'none';
+        } else {
+            symbolLabel.style.display = '';
+        }
+
+        let optionsHtml = `
+      <option value="firstTxTsAsc" selected>First txn ↑</option>
+      <option value="firstTxTsDesc">First txn ↓</option>
+    `;
+
+        if (mode !== 'nft' && mode !== 'nft+rep') {
+            optionsHtml += `
+        <option value="yumDesc">Tokens Count ↓</option>
+        <option value="yumAsc">Tokens Count ↑</option>
+      `;
+        }
+        if (mode !== 'token' && mode !== 'token+nft') {
+            if (mode !== 'nft') {
+                optionsHtml += `
+          <option value="repDesc">Rep Count ↓</option>
+          <option value="repAsc">Rep Count ↑</option>
+        `;
+            }
+        }
+        if (mode !== 'token') {
+            optionsHtml += `
+        <option value="nftCountDesc">NFT Count ↓</option>
+        <option value="nftCountAsc">NFT Count ↑</option>
+      `;
+        }
+
+        sortBySelect.innerHTML = optionsHtml;
+    }
+
+    function resetAndFetch() {
+        currentPage = 1;
+        currentData = [];
+        filteredData = [];
+        document.getElementById('board').innerHTML = '';
+        document.getElementById('pagination').innerHTML = '';
+        fetchBoard();
+    }
 
     function setDefaultDates() {
         const now = new Date();
@@ -207,8 +497,14 @@
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
         const tf= document.getElementById('tokenFilter').value.trim().toLowerCase();
+        const direction = document.getElementById('direction').value;
+        const symbol = document.getElementById('symbol').value;
+        const mode = document.getElementById('mode').value;
+        currentSymbol = symbol;
+
         const out = document.getElementById('board');
         out.innerHTML = '';
+        document.getElementById('pagination').innerHTML = '';
 
         if (!w) {
             out.innerHTML = '<div class="error">Укажите wallet_id.</div>';
@@ -216,121 +512,248 @@
             return;
         }
 
-        const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0 });
+        const ps = new URLSearchParams({ wallet_id: w, limit: 200, skip: 0, mode });
         if (s) ps.set('start_time', new Date(s).toISOString());
-        if (e) ps.set('end_time',   new Date(e).toISOString());
+        if (e) ps.set('end_time', new Date(e).toISOString());
+        ps.set('direction', direction);
+        ps.set('symbol', symbol);
 
-        const resp = await fetch(`${API}?${ps}`);
-        if (!resp.ok) {
-            out.innerHTML = `<div class="error">API ${resp.status}</div>`;
-            return;
-        }
-        let { leaderboard } = await resp.json();
+        try {
+            const resp = await fetch(`${API}?${ps}`);
+            if (!resp.ok) {
+                out.innerHTML = `<div class="error">API ${resp.status}</div>`;
+                spinner.style.display = 'none';
+                return;
+            }
+            let { leaderboard } = await resp.json();
 
-        if (tf) {
-            leaderboard = leaderboard.map(item => {
-                const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
-                const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
-                const nftCnt   = filtered.reduce((sum, t) => sum + t.count, 0);
-                return {
-                    wallet:   item.wallet,
-                    total:    totalRep,
-                    nftCount: nftCnt,
-                    tokens:   filtered,
-                    yum:      item.yum
-                };
-            }).filter(item => item.tokens.length);
-        }
+            if (tf) {
+                leaderboard = leaderboard.map(item => {
+                    const filtered = item.tokens.filter(t => t.title.toLowerCase().includes(tf));
+                    const totalRep = filtered.reduce((sum, t) => sum + t.totalRep, 0);
+                    const nftCnt = filtered.reduce((sum, t) => sum + t.count, 0);
+                    return {
+                        wallet: item.wallet,
+                        total: totalRep,
+                        nftCount: nftCnt,
+                        tokens: filtered,
+                        yum: item.yum
+                    };
+                }).filter(item => item.tokens.length);
+            }
 
-        if (!leaderboard.length) {
-            out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+            if (!leaderboard.length) {
+                out.innerHTML = '<div class="error">Нет данных за указанный период или токен не найден.</div>';
+                spinner.style.display = 'none';
+                currentData = [];
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            currentData = leaderboard;
+            applyFilterSort();
+            renderFilteredItems();
+
+        } catch (err) {
+            out.innerHTML = `<div class="error">Ошибка запроса: ${err.message}</div>`;
+            document.getElementById('pagination').innerHTML = '';
+        } finally {
             spinner.style.display = 'none';
-            currentData = [];
-            return;
         }
+    }
 
-        currentData = leaderboard;  // save for CSV
+    function applyFilterSort() {
+        const mode = document.getElementById('mode').value;
+        const search = document.getElementById('walletSearch').value.trim().toLowerCase();
+        const sortBy = document.getElementById('sortBy').value;
 
-        leaderboard.forEach((item, i) => {
+        filteredData = currentData.filter(item =>
+            item.wallet.toLowerCase().includes(search)
+        );
+
+        filteredData.sort((a, b) => {
+            switch (sortBy) {
+                case 'firstTxTsDesc':
+                    if (!a.firstTxTs) return 1;
+                    if (!b.firstTxTs) return -1;
+                    return b.firstTxTs.localeCompare(a.firstTxTs);
+                case 'firstTxTsAsc':
+                    if (!a.firstTxTs) return 1;
+                    if (!b.firstTxTs) return -1;
+                    return a.firstTxTs.localeCompare(b.firstTxTs);
+                case 'yumAsc':
+                    return a.yum - b.yum;
+                case 'yumDesc':
+                    return b.yum - a.yum;
+                case 'nftCountAsc':
+                    return a.nftCount - b.nftCount;
+                case 'nftCountDesc':
+                    return b.nftCount - a.nftCount;
+                case 'repAsc':
+                    return a.total - b.total;
+                case 'repDesc':
+                    return b.total - a.total;
+                default:
+                    return 0;
+            }
+        });
+        currentPage = 1;
+    }
+
+    function renderFilteredItems() {
+        const mode = document.getElementById('mode').value;
+        const out = document.getElementById('board');
+        out.innerHTML = '';
+
+        const showTokens = (mode === 'token+nft+rep' || mode === 'token' || mode === 'token+nft' || mode === 'nft+rep' || mode === 'nft');
+        const showYumCount = (mode === 'token+nft+rep' || mode === 'token' || mode === 'token+nft');
+        const showNFTCount = (mode !== 'token');
+
+        // Pagination
+        const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+        if (currentPage > totalPages) currentPage = totalPages || 1;
+        const startIdx = (currentPage - 1) * ROWS_PER_PAGE;
+        const endIdx = startIdx + ROWS_PER_PAGE;
+        const pageData = filteredData.slice(startIdx, endIdx);
+
+        pageData.forEach((item, i) => {
             const det = document.createElement('details');
             const sum = document.createElement('summary');
+
             sum.innerHTML = `
-                <div>${i+1}</div>
-                <div class="wallet-value">${item.wallet}</div>
-                <div class="summary-count">
-                <div>${item.yum?.toLocaleString?.() || 0} YUM</div>
-                <div>${item.nftCount} шт.</div>
-                <div>${item.total.toLocaleString()} rep</div>
-                </div>
-            `;
+        <div>${startIdx + i + 1}</div>
+        <div class="wallet-value">${item.wallet}</div>
+        <div class="summary-count">
+          ${showYumCount ? `<div>${item.yum?.toLocaleString?.() || 0} ${currentSymbol}</div>` : ''}
+          ${showNFTCount ? `<div>${item.nftCount} NFT</div>` : ''}
+          ${(mode === 'token+nft+rep' || mode === 'nft+rep') ? `<div>${item.total.toLocaleString()} rep</div>` : ''}
+        </div>
+      `;
+
             det.appendChild(sum);
 
             const tokensDiv = document.createElement('div');
             tokensDiv.className = 'tokens';
 
-            // Copy button
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
             btn.textContent = 'Copy';
             btn.onclick = () => {
-                // generate tabular text
                 const header = 'Title\tCount\tTotalRep\n';
-                const rows = item.tokens.map(t =>
-                    `${t.title}\t${t.count}\t${t.totalRep}`
-                ).join('\n');
-                const text = header + rows;
-                navigator.clipboard.writeText(text);
+                const rows = item.tokens.map(t => `${t.title}\t${t.count}\t${t.totalRep}`).join('\n');
+                navigator.clipboard.writeText(header + rows);
             };
             tokensDiv.appendChild(btn);
 
-            // список токенов
-            item.tokens.forEach(t => {
-                const ti = document.createElement('div');
-                ti.className = 'token-item';
-                ti.innerHTML = `
-            <span>${t.title}</span>
-            <span>${t.count}</span>
-            <strong>${t.totalRep}</strong>
-          `;
-                tokensDiv.appendChild(ti);
-            });
+            if (showTokens) {
+                item.tokens.forEach(t => {
+                    const ti = document.createElement('div');
+                    ti.className = 'token-item';
+                    ti.innerHTML = `<span>${t.title}</span><span>${t.count}</span><strong>${t.totalRep}</strong>`;
+                    tokensDiv.appendChild(ti);
+                });
+            }
 
             det.appendChild(tokensDiv);
             out.appendChild(det);
-
-            spinner.style.display = 'none';
         });
+
+        renderPagination(totalPages);
     }
 
-    function exportCsv() {
+    function renderPagination(totalPages) {
+        const pagDiv = document.getElementById('pagination');
+        pagDiv.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        const prev = document.createElement('button');
+        prev.textContent = 'Назад';
+        prev.disabled = currentPage === 1;
+        prev.onclick = () => { currentPage--; renderFilteredItems(); };
+        pagDiv.appendChild(prev);
+
+        for (let p = 1; p <= totalPages; ++p) {
+            const b = document.createElement('button');
+            b.textContent = p;
+            if (p === currentPage) b.classList.add('active-page');
+            b.disabled = p === currentPage;
+            b.onclick = () => { currentPage = p; renderFilteredItems(); };
+            pagDiv.appendChild(b);
+        }
+
+        const next = document.createElement('button');
+        next.textContent = 'Вперёд';
+        next.disabled = currentPage === totalPages;
+        next.onclick = () => { currentPage++; renderFilteredItems(); };
+        pagDiv.appendChild(next);
+    }
+
+    // Copy wallet
+    const copyAddress = document.querySelector('.copy-address');
+    const alertOverlay = document.getElementById('custom-alert');
+    const alertText = document.getElementById('custom-alert-text');
+    let alertTimeout;
+
+    copyAddress.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(copyAddress.textContent.trim());
+            showCustomAlert('Адрес скопирован в буфер обмена!');
+        } catch (err) {
+            fallbackCopyTextToClipboard(copyAddress.textContent.trim());
+        }
+    });
+
+    // xlsx export
+    function exportExcel() {
         if (!currentData.length) {
             alert('Нет данных для экспорта.');
             return;
         }
-        // Header
-        const header = ['#','Wallet','Amount of YUM','Amount of NFT','Amount of Rep'];
-        const rows = currentData.map((item, idx) => [
-            idx+1,
-            `"${item.wallet}"`,
-            item.yum,
-            item.nftCount,
-            item.total
-        ]);
-        const csvContent = [header, ...rows]
-            .map(r => r.join(','))
-            .join('\r\n');
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
+        const data = [];
+        data.push(['#','Wallet', `Amount of ${currentSymbol}`, 'Amount of NFT', 'Amount of Rep']);
+        filteredData.forEach((item, idx) => {
+            // Numerical values!
+            let yumVal = typeof item.yum === 'number' ? item.yum : Number(item.yum) || 0;
+            let nftVal = typeof item.nftCount === 'number' ? item.nftCount : Number(item.nftCount) || 0;
+            let repVal = typeof item.total === 'number' ? item.total : Number(item.total) || 0;
+            data.push([
+                idx+1,
+                item.wallet,
+                yumVal,
+                nftVal,
+                repVal
+            ]);
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Leaderboard');
+
+        // Format of numeric columns (Amount of ..., Amount of NFT, Amount of Rep)
+        // (Col 2, 3, 4 — in excel indexes from 0)
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        for(let R = 1; R <= range.e.r; ++R) {
+            for(let C of [2,3,4]) {
+                const cell = worksheet[XLSX.utils.encode_cell({r:R, c:C})];
+                if(cell && typeof cell.v === 'number') cell.t = 'n';
+            }
+        }
+
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/octet-stream' });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
         const s = document.getElementById('start').value;
         const e = document.getElementById('end').value;
-        a.href     = url;
-        a.download = `yum-glue_${s}-${e}.csv`;
+        a.href = url;
+        a.download = `yupland-checker_${s}-${e}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
     }
 
+    document.getElementById('exportCsv').onclick = exportExcel;
 </script>
 </body>
 </html>
